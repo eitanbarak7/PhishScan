@@ -1,5 +1,6 @@
 import os
 from simplegmail import Gmail
+import tkinter as tk
 from tkinter import messagebox
 
 def fetch_emails():
@@ -35,7 +36,7 @@ def download_attachments(email_listbox, emails):
     # Get the selected email
     email = emails[index]
     # Directory to save attachments
-    save_dir = r"C:\Users\Eitan\PycharmProjects\phishing\EMAIL_FILES"
+    save_dir = r"C:\Users\Eitan\PycharmProjects\email\files_from_emails"
     # Download attachments
     try:
         for attachment in email.attachments:
