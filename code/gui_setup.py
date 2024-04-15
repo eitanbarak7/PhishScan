@@ -2,6 +2,7 @@ import os
 import sys
 import tkinter as tk
 from tkinter import scrolledtext
+from find_phishing import start_finding
 
 
 def setup_gui(window, emails, show_email_func, download_attachments_func):
@@ -71,9 +72,14 @@ def create_download_button(frame, download_func, listbox, emails):
 
 def create_phishing_button(frame, listbox, emails):
     detect_phishing_button = tk.Button(frame, text="Detect Phishing",
-                                       command=lambda: detect_phishing_window(listbox, emails), bg="red",
+                                       command=lambda: find_phishing_in_message(listbox, emails), bg="red",
                                        fg="white")
     detect_phishing_button.pack(pady=5)
+
+def find_phishing_in_message(email_listbox, emails):
+    index = email_listbox.curselection()[0]
+    email = emails[index]
+    start_finding(email)
 
 
 def detect_phishing_window(email_listbox, emails):
