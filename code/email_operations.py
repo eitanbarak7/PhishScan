@@ -45,3 +45,46 @@ def download_attachments(email_listbox, emails):
         messagebox.showinfo("Download Complete", "Attachments downloaded successfully!")
     except Exception as e:
         messagebox.showerror("Error", f"Failed to download attachments: {e}")
+
+
+def how_many_times_sender(sender):
+
+    emails = fetch_emails()  # Assuming fetch_emails() fetches all emails
+    sender_count = 0
+    for email in emails:
+        if email.sender == sender:
+            sender_count += 1
+    return sender_count
+
+def check_whitelist(sender_email):
+    whitelist_file = r"C:\Users\Eitan\PycharmProjects\email\code\whitelist_file.txt"
+    with open(whitelist_file, 'r') as file:
+        whitelist_emails = file.read().splitlines()
+
+    # Check if the sender email is in the whitelist
+    if sender_email in whitelist_emails:
+        return True
+    else:
+        return False
+
+def check_blacklist(sender_email):
+    blacklist_file = r"C:\Users\Eitan\PycharmProjects\email\code\blacklist_file.txt"
+    # Read the blacklist file and extract email addresses
+    with open(blacklist_file, 'r') as file:
+        blacklist_file = file.read().splitlines()
+
+    # Check if the sender email is in the blacklist
+    if sender_email in blacklist_file:
+        return True
+    else:
+        return False
+
+
+def extract_email_from_sender(sender):
+    # Find the index of "<" and ">" to extract the email address
+    email_start_index = sender.find("<") + 1
+    email_end_index = sender.find(">", email_start_index)
+
+    # Extract the email substring
+    email = sender[email_start_index:email_end_index]
+    return email
