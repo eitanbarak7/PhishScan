@@ -5,7 +5,7 @@ from openai import OpenAI
 # Initialize OpenAI client
 client = OpenAI()
 
-def define_sender_email_score(email):
+def define_sender_email_score_with_ai(email):
 
     content_for_request = email.sender
     # Make a request to OpenAI's chat model
@@ -23,6 +23,7 @@ You will try to answer for me on a score scale of 1-10 how likely this email is 
 
 REPLY IN THIS FORMAT, ONLY:
 FINAL SCORE: #
+COMMENT: #
 
 Answer with the score you finally got to by the calculations (1 will be trusted, 10 will be very suspicious).
 
@@ -49,11 +50,30 @@ IMPORTANT: Please provide only the score from 1 to 10 for the likelihood of trus
         frequency_penalty=0,
         presence_penalty=0
     )
-    print (response)
    # sender_score =
 
-    #email_score = response.choices[0].message.content
-    #return response_message
+    email_score = response.choices[0].message.content
+
+    # Split the email_score string into lines
+    lines = email_score.split('\n')
+
+    # Initialize an empty dictionary to store the result
+    result = {}
+
+    # Iterate over each line to extract the score and comment
+    for line in lines:
+        if line.startswith("FINAL SCORE:"):
+            # Extract the score by splitting the line and converting the score to an integer
+            score = int(line.split(":")[1].strip())
+            result["Score"] = score
+        elif line.startswith("COMMENT:"):
+            # Extract the comment by removing the "COMMENT:" prefix
+            comment = line.replace("COMMENT:", "").strip()
+            result["Comment"] = comment
+
+    # Print the resulting dictionary
+    return result
+
 
 def check_if_sender_first_email(email):
     sender = email.sender
@@ -83,13 +103,34 @@ def check_if_in_black_list(email):
 
 
 def check_sender(email):
-    print("First Email? ", check_if_sender_first_email(email))
-    print("From WhiteList? ", check_if_in_white_list(email))
-    print("From Blacklist? ", check_if_in_black_list(email))
-    print("Respomse from AI:" , define_sender_email_score(email))
+    #print("First Email? ", check_if_sender_first_email(email))
+    #print("From WhiteList? ", check_if_in_white_list(email))
+    #print("From Blacklist? ", check_if_in_black_list(email))
+    #print("Respomse from AI:" , define_sender_email_score(email))
+
+    sender_status = {}
+    if check_if_sender_first_email(email):
+        sender_status["Activity"] = "New Sender"
+    else:
+        sender_status["Activity"] = "Not a first time Sender, sent: " + str(how_many_times_sender(email.sender)) + " emails"
+
+    if check_if_in_white_list(email):
+        sender_status["Score"] = 1
+        sender_status["Comment"] = "The sender email is appearing on the user's White List"
+        return sender_status
+    if check_if_in_black_list(email):
+        sender_status["Score"] = 10
+        sender_status["Comment"] = "The sender email is appearing on the user's Black List"
+        return sender_status
+    else:
+        result = define_sender_email_score_with_ai(email)
+        sender_status["Score"] = result["Score"]
+        sender_status["Comment"] = "Based on AI's calculations: ", result["Comment"]
+        return sender_status
+
 
 
 
 def start_finding(email):
     print("SENDER ", email.sender)
-    check_sender(email)
+    print(check_sender(email))
