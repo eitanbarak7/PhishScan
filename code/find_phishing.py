@@ -1,6 +1,7 @@
 from email_operations import *
 import json
 from openai import OpenAI
+import tkinter as tk
 
 # Initialize OpenAI client
 client = OpenAI()
@@ -143,7 +144,7 @@ def check_email_text(email, sender_status):
 
     # Make a request to OpenAI's chat model
     response = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-3.5-turbo",
         messages=[
             {
                 "role": "system",
@@ -198,4 +199,41 @@ def start_finding(email):
     sender_status = check_sender(email)
     print(sender_status)
     print(check_email_text(email, sender_status))
+
+
     #print(check_email_attachments(email))
+
+    show_sender_status(sender_status)
+
+
+def show_sender_status(sender_status):
+    root = tk.Tk()
+    root.title("Sender Status")
+
+    # Determine font size and color based on the score
+    score = sender_status["Score"]
+    if score <= 3:
+        font_size = 16
+        font_color = "green"
+    elif score <= 6:
+        font_size = 20
+        font_color = "orange"
+    else:
+        font_size = 24
+        font_color = "red"
+
+    # Frame for sender status
+    status_frame = tk.Frame(root, padx=10, pady=10)
+    status_frame.pack()
+
+    status_label = tk.Label(status_frame, text="Sender Status:", font=("Arial", 18, "bold"))
+    status_label.grid(row=0, column=0, sticky="w")
+
+    score_label = tk.Label(status_frame, text=f"Score: {sender_status["Score"]}", font=("Arial", font_size, "bold"), fg=font_color)
+    score_label.grid(row=1, column=0, sticky="w")
+
+    comment_label = tk.Label(status_frame, text=sender_status["Comment"], font=("Arial", 12))
+    comment_label.grid(row=2, column=0, sticky="w")
+
+    root.mainloop()
+
