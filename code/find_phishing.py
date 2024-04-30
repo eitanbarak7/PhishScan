@@ -2,6 +2,7 @@ from email_operations import *
 import json
 from openai import OpenAI
 import tkinter as tk
+from tkinter import ttk
 
 # Initialize OpenAI client
 client = OpenAI()
@@ -198,42 +199,137 @@ def start_finding(email):
     print("Sender's details: ", email.sender)
     sender_status = check_sender(email)
     print(sender_status)
-    print(check_email_text(email, sender_status))
-
+    email_status = {}
+    email_status_str = check_email_text(email, sender_status)
+    email_status = json.loads(email_status_str)
+    print(email_status)
 
     #print(check_email_attachments(email))
+    show_sender_screen(email, sender_status, email_status)
 
-    show_sender_status(sender_status)
-
-
-def show_sender_status(sender_status):
+def show_sender_screen(email, sender_status, email_status):
     root = tk.Tk()
-    root.title("Sender Status")
+    root.title("Email Details and Status")
+    root.geometry("1200x700")  # Set initial size of the window
 
-    # Determine font size and color based on the score
-    score = sender_status["Score"]
-    if score <= 3:
-        font_size = 16
-        font_color = "green"
-    elif score <= 6:
-        font_size = 20
-        font_color = "orange"
+    # Create a Canvas widget to hold the content
+    canvas = tk.Canvas(root)
+    canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    # Add a scrollbar to the canvas
+    scrollbar = ttk.Scrollbar(root, orient=tk.VERTICAL, command=canvas.yview)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    # Create a frame inside the canvas to hold the content
+    main_frame = tk.Frame(canvas)
+    canvas.create_window((0, 0), window=main_frame, anchor="nw")
+
+    # Bind the canvas to scroll with the mouse wheel
+    def on_mousewheel(event):
+        canvas.yview_scroll(-1 * int((event.delta / 120)), "units")
+    canvas.bind_all("<MouseWheel>", on_mousewheel)
+
+    # Frame for sender/email status
+    status_frame = tk.Frame(main_frame, padx=10, pady=10)
+    status_frame.grid(row=0, column=0, sticky="nsew")
+
+    # Determine sender score color and comment
+    sender_score = sender_status["Score"]
+    if sender_score <= 3:
+        sender_color = "green"
+        sender_comment = "Safe"
+    elif sender_score <= 6:
+        sender_color = "orange"
+        sender_comment = "Probably Safe"
     else:
-        font_size = 24
-        font_color = "red"
+        sender_color = "red"
+        sender_comment = "Unsafe"
 
-    # Frame for sender status
-    status_frame = tk.Frame(root, padx=10, pady=10)
-    status_frame.pack()
+    # Sender status
+    sender_label = tk.Label(status_frame, text="Sender Status:", font=("Arial", 14, "bold"))
+    sender_label.grid(row=0, column=0, sticky="w")
 
-    status_label = tk.Label(status_frame, text="Sender Status:", font=("Arial", 18, "bold"))
-    status_label.grid(row=0, column=0, sticky="w")
+    sender_score_label = tk.Label(status_frame, text=f"Score: {sender_score} ({sender_comment})", font=("Arial", 12, "bold"), fg=sender_color)
+    sender_score_label.grid(row=1, column=0, sticky="w")
 
-    score_label = tk.Label(status_frame, text=f"Score: {sender_status["Score"]}", font=("Arial", font_size, "bold"), fg=font_color)
-    score_label.grid(row=1, column=0, sticky="w")
+    sender_comment_label = tk.Label(status_frame, text=sender_status["Comment"], font=("Arial", 12), wraplength=300, justify="left")
+    sender_comment_label.grid(row=2, column=0, sticky="w")
 
-    comment_label = tk.Label(status_frame, text=sender_status["Comment"], font=("Arial", 12))
-    comment_label.grid(row=2, column=0, sticky="w")
+    # Determine email score color and comment
+    email_score = int(email_status["Phishing Detected Score"])
+    if email_score <= 3:
+        email_color = "green"
+        email_comment = "Safe"
+    elif email_score <= 6:
+        email_color = "orange"
+        email_comment = "Probably Safe"
+    else:
+        email_color = "red"
+        email_comment = "Unsafe"
+
+    # Email status
+    email_label = tk.Label(status_frame, text="Email Status:", font=("Arial", 14, "bold"))
+    email_label.grid(row=3, column=0, sticky="w")
+
+    email_score_label = tk.Label(status_frame, text=f"Score: {email_score} ({email_comment})", font=("Arial", 20, "bold"), fg=email_color)
+    email_score_label.grid(row=4, column=0, sticky="w")
+
+    email_safe_label = tk.Label(status_frame, text=email_status["Safe"], font=("Arial", 10), wraplength=300, justify="left")
+    email_safe_label.grid(row=5, column=0, sticky="w")
+
+    email_danger_label = tk.Label(status_frame, text=email_status["Danger"], font=("Arial", 12, "bold"), fg="red" , wraplength=300, justify="left")
+    email_danger_label.grid(row=6, column=0, sticky="w")
+
+    email_final_label = tk.Label(status_frame, text=email_status["Comment"], font=("Arial", 10), wraplength=300, justify="left")
+    email_final_label.grid(row=7, column=0, sticky="w")
+
+    details_frame = tk.Frame(main_frame, padx=10, pady=10)
+    details_frame.grid(row=0, column=1, sticky="nsew")
+
+    # Email subject
+    subject_label = tk.Label(details_frame, text="Subject:", font=("Arial", 14, "bold"))
+    subject_label.grid(row=0, column=0, sticky="w")
+
+    subject_text = tk.Label(details_frame, text=email.subject, font=("Arial", 12, "bold"), wraplength=400, justify="left")
+    subject_text.grid(row=0, column=1, sticky="w")
+
+    # Email plain text
+    plain_label = tk.Label(details_frame, text="Email Content:", font=("Arial", 14, "bold"))
+    plain_label.grid(row=1, column=0, sticky="w")
+
+    plain_text = tk.Label(details_frame, text=email.plain, font=("Arial", 10), wraplength=400, justify="left")
+    plain_text.grid(row=2, column=0, columnspan=2, sticky="w")
+
+    # Change background color of the column with scores to very light gray
+    for label in status_frame.winfo_children():
+        if label.grid_info()["column"] == 0:  # Assuming score labels are in the first column
+            label.config(bg="#ffffff")  # Use a very light gray color
+
+    # Update the canvas scroll region when the size of the main_frame changes
+    def on_frame_configure(event):
+        canvas.configure(scrollregion=canvas.bbox("all"))
+    main_frame.bind("<Configure>", on_frame_configure)
 
     root.mainloop()
+
+def show_sender_screen1(email, sender_status, email_status):
+    from_who = email.sender
+    date = email.date
+    subject = email.subject
+    plain = email.plain
+    first_time = sender_status["First_time_sender"]
+    sender_score = sender_status["Score"]
+    sender_score_comment = sender_status["Comment"]
+    email_score = email_status["Phishing Detected Score"]
+    email_safe_comment = email_status["Safe"]
+    email_danger_comment = email_status["Danger"]
+    email_final_comment = email_status["Comment"]
+
+
+
+
+
+
+
 
