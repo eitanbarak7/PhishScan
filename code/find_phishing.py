@@ -156,11 +156,11 @@ Your goal is to decide if the email is a phishing (or other attacks) email, or a
 
 I will provide you that data, and you will reply to me with this layout of reply:
 Phishing Detected Score: # (1-10 score: score of 1 is very safe, score of 10 is very untrusted and might be dangerous or suspicious!)
-Safe: ### (explain here the safe things you found on the email)
-Danger: ### (explain here the dangerous or suspicious things you found on the email)
+Safe: ### (write a text: explain here the safe things you found on the email)
+Danger: ### (write a text: explain here the dangerous or suspicious things you found on the email)
 Comment: #### (Here, add a comment explaining why you chose this specific score, explain your logic, and give me quotes from the texts to base your decision. give explanations. summarize the whole thing
 
-Tips for you to check the email content properly:
+Levels you MUST CHECK: check the email content properly:
 1. Check the score for the email's sender that you've been given. check the rest of the email based on this, but don't put all of your trust in it, just get help with it. sometimes it's not that accurate, take that in charge. If the sender appears on white-list or black-list, make sure to pay attention!
 2. Check the email subject. is it suspicious? does it contain promises or "clickbait"?
 3. If there are URLs in the email, do they look safe? Are the domains authentic and trusted? - Fake URLs are highly suspicious!
@@ -169,8 +169,10 @@ Tips for you to check the email content properly:
 6. If you think the email is safe, don't hesitate to give a score of 1-2...
 7. Be informal. don't add tips regarding how to open and react to the email, just give me the score and comment. no need for user behavior tips! Don't tell me things like "take caution" or "pay attention"!
 8. At last, make sure you chose the CORRECT score, if it's trusted it should be low, if its suspicious it should be a high scored. DO NOT MAKE MISTAKES WITH THAT.
+9. If the sender identifies itself at some point on the email's plain text (usually at the end of it) - check that the sender's name and email matches this identity.
+10. If the email is trying to show itself as an email from a known company, is the email address that sent the email - matches it? if not - it will be very suspicious because it might be disguise.
 
-By using these steps, you will be able to do it well.
+By using these steps (levels), you will be able to do it well. Make sure you checked ALL LEVELS.
 Make sure to reply to me with the template I asked for.
 
 REPLY IN ENGLISH ONLY. In a DICT json format!
