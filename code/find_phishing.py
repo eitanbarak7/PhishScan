@@ -1,3 +1,5 @@
+import socket
+
 from email_operations import *
 import json
 from openai import OpenAI
@@ -122,7 +124,8 @@ def check_sender(email):
         return sender_status
     if check_if_in_black_list(email):
         sender_status["Score"] = 10
-        sender_status["Comment"] = "The email is very likely untrusted because the user added this email to it's black-list. This is the worst sender's score."
+        sender_status[
+            "Comment"] = "The email is very likely untrusted because the user added this email to it's black-list. This is the worst sender's score."
         return sender_status
     else:
         result = define_sender_email_score_with_ai(email)
@@ -130,18 +133,21 @@ def check_sender(email):
         sender_status["Comment"] = "Based on AI's calculations: ", result["Comment"]
         return sender_status
 
-def check_email_text(email, sender_status):
 
+def check_email_text(email, sender_status):
     sender_status_code = sender_status["Score"]
 
-    insert_to_prompt = str("Based on other checks, the sender (based on name and email address), received a score of " + str(sender_status_code) + ". (1-10 score, 1 is very trusted and safe, 10 is very suspicious and not safe. In addition, the comment that was added to summarize how this score was set is this: " + str(sender_status["Comment"]) + " . Make sure to pay attention to that information and look at the email content based on this info too...")
+    insert_to_prompt = str(
+        "Based on other checks, the sender (based on name and email address), received a score of " + str(
+            sender_status_code) + ". (1-10 score, 1 is very trusted and safe, 10 is very suspicious and not safe. In addition, the comment that was added to summarize how this score was set is this: " + str(
+            sender_status[
+                "Comment"]) + " . Make sure to pay attention to that information and look at the email content based on this info too...")
 
     content_for_request = {}
     content_for_request["Sender Email and Name"] = email.sender
     content_for_request["Sender Status from previous calculations"] = insert_to_prompt
     content_for_request["Email Subject"] = email.subject
     content_for_request["Email plain text"] = email.plain
-
 
     # Make a request to OpenAI's chat model
     response = client.chat.completions.create(
@@ -195,19 +201,33 @@ REPLY IN ENGLISH ONLY. In a DICT json format!
     return email_score
 
 
-
-
 def start_finding(email):
+    host = 'localhost'
+    port = 5678
+
     print("Sender's details: ", email.sender)
+
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((host, port))
+    email_from_to_socket = email.sender
+    client_socket.send(email_from_to_socket.encode('utf-8'))
+
     sender_status = check_sender(email)
     print(sender_status)
+
+    sender_status_to_socket_ = str(sender_status["Score"])
+    client_socket.send(sender_status_to_socket_.encode('utf-8'))
+
     email_status = {}
     email_status_str = check_email_text(email, sender_status)
     email_status = json.loads(email_status_str)
     print(email_status)
 
-    #print(check_email_attachments(email))
+    email_status_to_socket_ = str(email_status["Phishing Detected Score"])
+    client_socket.send(email_status_to_socket_.encode('utf-8'))
+
     show_sender_screen(email, sender_status, email_status)
+
 
 def show_sender_screen(email, sender_status, email_status):
     root = tk.Tk()
@@ -230,6 +250,7 @@ def show_sender_screen(email, sender_status, email_status):
     # Bind the canvas to scroll with the mouse wheel
     def on_mousewheel(event):
         canvas.yview_scroll(-1 * int((event.delta / 120)), "units")
+
     canvas.bind_all("<MouseWheel>", on_mousewheel)
 
     # Frame for sender/email status
@@ -252,10 +273,12 @@ def show_sender_screen(email, sender_status, email_status):
     sender_label = tk.Label(status_frame, text="Sender Status:", font=("Arial", 14, "bold"))
     sender_label.grid(row=0, column=0, sticky="w")
 
-    sender_score_label = tk.Label(status_frame, text=f"Score: {sender_score} ({sender_comment})", font=("Arial", 12, "bold"), fg=sender_color)
+    sender_score_label = tk.Label(status_frame, text=f"Score: {sender_score} ({sender_comment})",
+                                  font=("Arial", 12, "bold"), fg=sender_color)
     sender_score_label.grid(row=1, column=0, sticky="w")
 
-    sender_comment_label = tk.Label(status_frame, text=sender_status["Comment"], font=("Arial", 12), wraplength=300, justify="left")
+    sender_comment_label = tk.Label(status_frame, text=sender_status["Comment"], font=("Arial", 12), wraplength=300,
+                                    justify="left")
     sender_comment_label.grid(row=2, column=0, sticky="w")
 
     # Determine email score color and comment
@@ -274,16 +297,20 @@ def show_sender_screen(email, sender_status, email_status):
     email_label = tk.Label(status_frame, text="Email Status:", font=("Arial", 14, "bold"))
     email_label.grid(row=3, column=0, sticky="w")
 
-    email_score_label = tk.Label(status_frame, text=f"Score: {email_score} ({email_comment})", font=("Arial", 20, "bold"), fg=email_color)
+    email_score_label = tk.Label(status_frame, text=f"Score: {email_score} ({email_comment})",
+                                 font=("Arial", 20, "bold"), fg=email_color)
     email_score_label.grid(row=4, column=0, sticky="w")
 
-    email_safe_label = tk.Label(status_frame, text=email_status["Safe"], font=("Arial", 10), wraplength=300, justify="left")
+    email_safe_label = tk.Label(status_frame, text=email_status["Safe"], font=("Arial", 10), wraplength=300,
+                                justify="left")
     email_safe_label.grid(row=5, column=0, sticky="w")
 
-    email_danger_label = tk.Label(status_frame, text=email_status["Danger"], font=("Arial", 12, "bold"), fg="red" , wraplength=300, justify="left")
+    email_danger_label = tk.Label(status_frame, text=email_status["Danger"], font=("Arial", 12, "bold"), fg="red",
+                                  wraplength=300, justify="left")
     email_danger_label.grid(row=6, column=0, sticky="w")
 
-    email_final_label = tk.Label(status_frame, text=email_status["Comment"], font=("Arial", 10), wraplength=300, justify="left")
+    email_final_label = tk.Label(status_frame, text=email_status["Comment"], font=("Arial", 10), wraplength=300,
+                                 justify="left")
     email_final_label.grid(row=7, column=0, sticky="w")
 
     details_frame = tk.Frame(main_frame, padx=10, pady=10)
@@ -293,7 +320,8 @@ def show_sender_screen(email, sender_status, email_status):
     subject_label = tk.Label(details_frame, text="Subject:", font=("Arial", 14, "bold"))
     subject_label.grid(row=0, column=0, sticky="w")
 
-    subject_text = tk.Label(details_frame, text=email.subject, font=("Arial", 12, "bold"), wraplength=400, justify="left")
+    subject_text = tk.Label(details_frame, text=email.subject, font=("Arial", 12, "bold"), wraplength=400,
+                            justify="left")
     subject_text.grid(row=0, column=1, sticky="w")
 
     # Email plain text
@@ -311,9 +339,11 @@ def show_sender_screen(email, sender_status, email_status):
     # Update the canvas scroll region when the size of the main_frame changes
     def on_frame_configure(event):
         canvas.configure(scrollregion=canvas.bbox("all"))
+
     main_frame.bind("<Configure>", on_frame_configure)
 
     root.mainloop()
+
 
 def show_sender_screen1(email, sender_status, email_status):
     from_who = email.sender
@@ -327,11 +357,3 @@ def show_sender_screen1(email, sender_status, email_status):
     email_safe_comment = email_status["Safe"]
     email_danger_comment = email_status["Danger"]
     email_final_comment = email_status["Comment"]
-
-
-
-
-
-
-
-
