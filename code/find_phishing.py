@@ -107,10 +107,6 @@ def check_if_in_black_list(email):
 
 
 def check_sender(email):
-    # print("First Email? ", check_if_sender_first_email(email))
-    # print("From WhiteList? ", check_if_in_white_list(email))
-    # print("From Blacklist? ", check_if_in_black_list(email))
-    # print("Respomse from AI:" , define_sender_email_score(email))
 
     sender_status = {}
     if check_if_sender_first_email(email):
@@ -143,11 +139,9 @@ def check_email_text(email, sender_status):
             sender_status[
                 "Comment"]) + " . Make sure to pay attention to that information and look at the email content based on this info too...")
 
-    content_for_request = {}
-    content_for_request["Sender Email and Name"] = email.sender
-    content_for_request["Sender Status from previous calculations"] = insert_to_prompt
-    content_for_request["Email Subject"] = email.subject
-    content_for_request["Email plain text"] = email.plain
+    content_for_request = {"Sender Email and Name": email.sender,
+                           "Sender Status from previous calculations": insert_to_prompt, "Email Subject": email.subject,
+                           "Email plain text": email.plain}
 
     # Make a request to OpenAI's chat model
     response = client.chat.completions.create(
@@ -201,7 +195,7 @@ REPLY IN ENGLISH ONLY. In a DICT json format!
     return email_score
 
 
-def start_finding(email):
+def start_finding(done_queue, email):
     host = 'localhost'
     port = 5678
 
@@ -218,13 +212,14 @@ def start_finding(email):
     sender_status_to_socket_ = str(sender_status["Score"])
     client_socket.send(sender_status_to_socket_.encode('utf-8'))
 
-    email_status = {}
     email_status_str = check_email_text(email, sender_status)
     email_status = json.loads(email_status_str)
     print(email_status)
 
     email_status_to_socket_ = str(email_status["Phishing Detected Score"])
     client_socket.send(email_status_to_socket_.encode('utf-8'))
+
+    done_queue.put("done")
 
     show_sender_screen(email, sender_status, email_status)
 
@@ -343,17 +338,3 @@ def show_sender_screen(email, sender_status, email_status):
     main_frame.bind("<Configure>", on_frame_configure)
 
     root.mainloop()
-
-
-def show_sender_screen1(email, sender_status, email_status):
-    from_who = email.sender
-    date = email.date
-    subject = email.subject
-    plain = email.plain
-    first_time = sender_status["First_time_sender"]
-    sender_score = sender_status["Score"]
-    sender_score_comment = sender_status["Comment"]
-    email_score = email_status["Phishing Detected Score"]
-    email_safe_comment = email_status["Safe"]
-    email_danger_comment = email_status["Danger"]
-    email_final_comment = email_status["Comment"]

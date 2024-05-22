@@ -3,11 +3,13 @@ from simplegmail import Gmail
 import tkinter as tk
 from tkinter import messagebox
 
+
 def fetch_emails():
     # Create Gmail object
     gmail = Gmail()
     # Fetch unread messages
     return gmail.get_unread_inbox()
+
 
 def show_email(email_listbox, emails, text_area, download_button):
     # Get the index of the selected email in the listbox
@@ -29,6 +31,7 @@ def show_email(email_listbox, emails, text_area, download_button):
         download_button.config(state=tk.NORMAL)
     else:
         download_button.config(state=tk.DISABLED)
+
 
 def download_attachments(email_listbox, emails):
     # Get the index of the selected email in the listbox
@@ -56,6 +59,7 @@ def how_many_times_sender(sender):
             sender_count += 1
     return sender_count
 
+
 def check_whitelist(sender_email):
     whitelist_file = r"C:\Users\Eitan\PycharmProjects\email\code\whitelist_file.txt"
     with open(whitelist_file, 'r') as file:
@@ -66,6 +70,7 @@ def check_whitelist(sender_email):
         return True
     else:
         return False
+
 
 def check_blacklist(sender_email):
     blacklist_file = r"C:\Users\Eitan\PycharmProjects\email\code\blacklist_file.txt"

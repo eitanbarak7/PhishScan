@@ -4,7 +4,7 @@ from tkinter import ttk
 from itertools import cycle
 
 
-def display_image_fullscreen(image_path):
+def display_image_fullscreen(image_path, on_button_click):
     root = tk.Tk()
     root.attributes('-fullscreen', True)
     root.bind('<Escape>', lambda e: root.quit())
@@ -23,9 +23,8 @@ def display_image_fullscreen(image_path):
     label.pack(fill='both', expand=True)
 
     # Create a Button with a wider size and custom font
-    button = tk.Button(root, text="הצג את תיבת הדואר האלקטרוני", bg="white", fg="blue", font=("Assistant Bold", 40), width=32, height=1)
-
-    # Position the button in the bottom third of the screen
+    button = tk.Button(root, text="הצג את תיבת הדואר האלקטרוני", bg="white", fg="blue",
+                       font=("Assistant Bold", 40), width=32, height=1, command=lambda: on_button_click(root))
     button.place(relx=0.5, rely=0.75, anchor=tk.CENTER)
 
     # Create the "X" button in the top left corner
@@ -36,54 +35,60 @@ def display_image_fullscreen(image_path):
     root.mainloop()
 
 
-def start_loading_screen():
-    root = tk.Tk()
-    root.title("Loading...")
-    root.geometry("600x400")
-    root.configure(bg="#0d1b2a")
+def start_loading_screen(queue):
+    print("Loading screen started")
 
-    # Load custom font if available
+    loading_root = tk.Tk()
+    loading_root.title("Loading...")
+
+    # Get the screen width and height
+    screen_width = loading_root.winfo_screenwidth()
+    screen_height = loading_root.winfo_screenheight()
+
+    # Define the width and height of the loading window
+    window_width = 600
+    window_height = 400
+
+    # Calculate the position to center the window
+    position_right = int(screen_width / 2 - window_width / 2)
+    position_down = int(screen_height / 2 - window_height / 2)
+
+    # Set the geometry of the loading window to be centered
+    loading_root.geometry(f"{window_width}x{window_height}+{position_right}+{position_down}")
+    loading_root.configure(bg="#0d1b2a")
+
     try:
-        root.option_add("*Font", "Assistant 20 bold")
+        loading_root.option_add("*Font", "Assistant 20 bold")
     except tk.TclError:
-        root.option_add("*Font", "Helvetica 20 bold")
+        loading_root.option_add("*Font", "Helvetica 20 bold")
 
-    # Create a label with cyber-style text
-    label = tk.Label(root, text="Loading...", fg="#01d28e", bg="#0d1b2a")
+    label = tk.Label(loading_root, text="Loading...", fg="#01d28e", bg="#0d1b2a")
     label.pack(pady=100)
 
-    # Create a progress bar
-    progress_bar = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate")
+    progress_bar = ttk.Progressbar(loading_root, orient="horizontal", length=400, mode="determinate")
     progress_bar.pack(pady=20)
     progress_bar.configure(style="blue.Horizontal.TProgressbar")
 
-    # Add a loading animation
     loading_text = ["|", "/", "-", "\\"]
     loading_cycle = cycle(loading_text)
 
     def update_progress():
-        progress_bar.step(5)
-        label.config(text=f"Loading... {next(loading_cycle)}")
-        if progress_bar['value'] < 100:
-            root.after(100, update_progress)
-        else:
-            root.quit()
+        try:
+            if not queue.empty():
+                queue.get_nowait()
+                loading_root.destroy()
+                print("Loading complete, closing loading screen")
+            else:
+                progress_bar.step(5)
+                label.config(text=f"Loading... {next(loading_cycle)}")
+                loading_root.after(100, update_progress)
+        except Exception as e:
+            print(f"Error updating progress: {e}")
 
-    # Start the loading animation
-    root.after(100, update_progress)
+    loading_root.after(100, update_progress)
 
-    # Style the progress bar
     style = ttk.Style()
     style.theme_use("clam")
     style.configure("blue.Horizontal.TProgressbar", troughcolor="#0d1b2a", background="#01d28e", thickness=20)
 
-    # Start the Tkinter event loop
-    root.mainloop()
-
-# Example usage
-start_loading_screen()
-
-
-
-# Example usage
-display_image_fullscreen(r'C:\Users\Eitan\PycharmProjects\email\screens\welcome.png')
+    loading_root.mainloop()
