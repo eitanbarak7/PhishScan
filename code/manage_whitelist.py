@@ -2,6 +2,7 @@ import re
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 
+
 class EmailManagerApp:
     def __init__(self, master):
         self.master = master
@@ -18,11 +19,14 @@ class EmailManagerApp:
         self.load_emails()
 
         # Buttons
-        self.add_button = tk.Button(master, text="Add Email", command=self.add_email, font=("Helvetica", 12), bg="green", fg="white")
+        self.add_button = tk.Button(master, text="Add Email", command=self.add_email,
+                                    font=("Helvetica", 12), bg="green", fg="white")
         self.add_button.pack(side=tk.LEFT, padx=10)
-        self.edit_button = tk.Button(master, text="Edit Email", command=self.edit_email, font=("Helvetica", 12), bg="blue", fg="white")
+        self.edit_button = tk.Button(master, text="Edit Email", command=self.edit_email,
+                                     font=("Helvetica", 12), bg="blue", fg="white")
         self.edit_button.pack(side=tk.LEFT, padx=10)
-        self.delete_button = tk.Button(master, text="Delete Email", command=self.delete_email, font=("Helvetica", 12), bg="red", fg="white")
+        self.delete_button = tk.Button(master, text="Delete Email", command=self.delete_email,
+                                       font=("Helvetica", 12), bg="red", fg="white")
         self.delete_button.pack(side=tk.LEFT, padx=10)
 
     def load_emails(self):
@@ -81,9 +85,11 @@ class EmailManagerApp:
             for email in emails:
                 file.write(email + "\n")
 
+
 def is_valid_email(email):
     email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(email_regex, email) is not None
+
 
 def is_email_blacklisted(email):
     try:
@@ -100,8 +106,8 @@ def is_email_blacklisted(email):
 
 def main():
     root = tk.Tk()
-    app = EmailManagerApp(root)
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()
