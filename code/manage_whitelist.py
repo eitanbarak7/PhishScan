@@ -106,6 +106,7 @@ def is_email_blacklisted(email):
 
 def main():
     root = tk.Tk()
+    app = EmailManagerApp(root)  # Create an instance of EmailManagerApp
     root.mainloop()
 
 

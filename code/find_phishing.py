@@ -10,8 +10,8 @@ from tkinter import ttk
 client = OpenAI()
 
 
-def define_sender_email_score_with_ai(email):
-    content_for_request = email.sender
+def define_sender_email_score_with_ai(email, response):
+    content_for_request = email.sender + "\n" + response
     # Make a request to OpenAI's chat model
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -22,6 +22,8 @@ def define_sender_email_score_with_ai(email):
 
 You will be my helper, I will send you: an email address + name of the sender who sent me an email.
 In this format: (example@example.com <ExampleName>)
+
+I will also give you the sender average received score (checked by my server in recent checks) (1 is safe, 10 is very dangerous), use the average in order to improve your checks, but not as as a desicion maker, if however you used it's result, mention it in the comment later.
 
 You will try to answer for me on a score scale of 1-10 how likely this email is trusted or maybe suspicious of a phishing attack.
 
@@ -106,8 +108,7 @@ def check_if_in_black_list(email):
         return False
 
 
-def check_sender(email):
-
+def check_sender(email, response):
     sender_status = {}
     if check_if_sender_first_email(email):
         sender_status["First_time_sender"] = True
@@ -124,13 +125,13 @@ def check_sender(email):
             "Comment"] = "The email is very likely untrusted because the user added this email to it's black-list. This is the worst sender's score."
         return sender_status
     else:
-        result = define_sender_email_score_with_ai(email)
+        result = define_sender_email_score_with_ai(email, response)
         sender_status["Score"] = result["Score"]
         sender_status["Comment"] = "Based on AI's calculations: ", result["Comment"]
         return sender_status
 
 
-def check_email_text(email, sender_status):
+def check_email_text(email, sender_status, response):
     sender_status_code = sender_status["Score"]
 
     insert_to_prompt = str(
@@ -141,7 +142,8 @@ def check_email_text(email, sender_status):
 
     content_for_request = {"Sender Email and Name": email.sender,
                            "Sender Status from previous calculations": insert_to_prompt, "Email Subject": email.subject,
-                           "Email plain text": email.plain}
+                           "Email plain text": email.plain,
+                           "Email Address average score": response}
 
     # Make a request to OpenAI's chat model
     response = client.chat.completions.create(
@@ -171,6 +173,7 @@ Levels you MUST CHECK: check the email content properly:
 8. At last, make sure you chose the CORRECT score, if it's trusted it should be low, if its suspicious it should be a high scored. DO NOT MAKE MISTAKES WITH THAT.
 9. If the sender identifies itself at some point on the email's plain text (usually at the end of it) - check that the sender's name and email matches this identity.
 10. If the email is trying to show itself as an email from a known company, is the email address that sent the email - matches it? if not - it will be very suspicious because it might be disguise.
+11. Look at the average email's sender score and average email's score that you received before, they should'nt decide it all, but pay attention, they might show trust or show dangerous patterns. mention it in the comments later if you used it. (it's the average till now from other previous email checks)
 
 By using these steps (levels), you will be able to do it well. Make sure you checked ALL LEVELS.
 Make sure to reply to me with the template I asked for.
@@ -206,13 +209,17 @@ def start_finding(done_queue, email):
     email_from_to_socket = email.sender
     client_socket.send(email_from_to_socket.encode('utf-8'))
 
-    sender_status = check_sender(email)
+    # Receive response containing average scores or message from the server
+    response = client_socket.recv(100000).decode('utf-8')
+    print(response)
+
+    sender_status = check_sender(email, response)
     print(sender_status)
 
     sender_status_to_socket_ = str(sender_status["Score"])
     client_socket.send(sender_status_to_socket_.encode('utf-8'))
 
-    email_status_str = check_email_text(email, sender_status)
+    email_status_str = check_email_text(email, sender_status, response)
     email_status = json.loads(email_status_str)
     print(email_status)
 
@@ -221,10 +228,10 @@ def start_finding(done_queue, email):
 
     done_queue.put("done")
 
-    show_sender_screen(email, sender_status, email_status)
+    show_sender_screen(email, sender_status, email_status, response)
 
 
-def show_sender_screen(email, sender_status, email_status):
+def show_sender_screen(email, sender_status, email_status, response):
     root = tk.Tk()
     root.title("Email Details and Status")
     root.geometry("1200x700")  # Set initial size of the window
@@ -248,9 +255,18 @@ def show_sender_screen(email, sender_status, email_status):
 
     canvas.bind_all("<MouseWheel>", on_mousewheel)
 
+    # Frame for response, sender, and email status
+    response_frame = tk.Frame(main_frame, padx=10, pady=10)
+    response_frame.grid(row=0, column=0, columnspan=2, sticky="nsew")
+
+    # Response label
+    response_label = tk.Label(response_frame, text=response, font=("Arial", 10, "italic"), fg="blue", wraplength=700,
+                              justify="left")
+    response_label.grid(row=0, column=0, sticky="w")
+
     # Frame for sender/email status
     status_frame = tk.Frame(main_frame, padx=10, pady=10)
-    status_frame.grid(row=0, column=0, sticky="nsew")
+    status_frame.grid(row=1, column=0, sticky="nsew")
 
     # Determine sender score color and comment
     sender_score = sender_status["Score"]
@@ -309,7 +325,7 @@ def show_sender_screen(email, sender_status, email_status):
     email_final_label.grid(row=7, column=0, sticky="w")
 
     details_frame = tk.Frame(main_frame, padx=10, pady=10)
-    details_frame.grid(row=0, column=1, sticky="nsew")
+    details_frame.grid(row=1, column=1, sticky="nsew")
 
     # Email subject
     subject_label = tk.Label(details_frame, text="Subject:", font=("Arial", 14, "bold"))
