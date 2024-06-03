@@ -29,14 +29,14 @@ def create_sidebar(window, bg_color, emails, show_email_func, download_attachmen
     def manage_whitelist():
         try:
             # Execute the manage_whitelist.py file using subprocess
-            subprocess.run(["python", "manage_whitelist.py"])
+            subprocess.run(["python", "C:\\Users\\Eitan\\PycharmProjects\\email\\code\\lists\\manage_whitelist.py"])
         except Exception as e:
             print("Error executing manage_whitelist.py:", e)
 
     def manage_blacklist():
         try:
             # Execute the manage_blacklist.py file using subprocess
-            subprocess.run(["python", "manage_blacklist.py"])
+            subprocess.run(["python", "C:\\Users\\Eitan\\PycharmProjects\\email\\code\\lists\\manage_blacklist.py"])
         except Exception as e:
             print("Error executing manage_blacklist.py:", e)
 

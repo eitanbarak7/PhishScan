@@ -61,7 +61,7 @@ def how_many_times_sender(sender):
 
 
 def check_whitelist(sender_email):
-    whitelist_file = r"C:\Users\Eitan\PycharmProjects\email\code\whitelist_file.txt"
+    whitelist_file = r"C:\Users\Eitan\PycharmProjects\email\code\lists\whitelist_file.txt"
     with open(whitelist_file, 'r') as file:
         whitelist_emails = file.read().splitlines()
 
@@ -73,7 +73,7 @@ def check_whitelist(sender_email):
 
 
 def check_blacklist(sender_email):
-    blacklist_file = r"C:\Users\Eitan\PycharmProjects\email\code\blacklist_file.txt"
+    blacklist_file = r"C:\Users\Eitan\PycharmProjects\email\code\lists\blacklist_file.txt"
     # Read the blacklist file and extract email addresses
     with open(blacklist_file, 'r') as file:
         blacklist_file = file.read().splitlines()

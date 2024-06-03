@@ -259,6 +259,11 @@ def show_sender_screen(email, sender_status, email_status, response):
     response_frame = tk.Frame(main_frame, padx=10, pady=10)
     response_frame.grid(row=0, column=0, columnspan=2, sticky="nsew")
 
+    if (response == "This email address hasn't received an email score or sender score till now. "
+            "It doesn't mean this isn't safe, this is just a parameter we can't use now. "
+            "So check it as usual with the care needed."):
+        response = "This email address doesn't have average scores, since it's hasn't been checked till now."
+
     # Response label
     response_label = tk.Label(response_frame, text=response, font=("Arial", 10, "italic"), fg="blue", wraplength=700,
                               justify="left")
