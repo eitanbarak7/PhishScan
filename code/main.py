@@ -50,4 +50,4 @@ def on_button_click(root):
 
 # Start the welcome screen
 if __name__ == "__main__":
-    display_image_fullscreen(r'C:\Users\Eitan\PycharmProjects\email\screens\welcome.png', on_button_click)
+    display_image_fullscreen(r'C:\Users\Eitan\PycharmProjects\PhishScan\screens\welcome.png', on_button_click)

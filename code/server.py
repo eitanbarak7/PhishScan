@@ -1,3 +1,4 @@
+import re
 import socket
 import sqlite3
 import tkinter as tk
@@ -18,15 +19,23 @@ cursor.execute('''
 ''')
 db.commit()
 
-# Server setup
-host = 'localhost'
-port = 5678
 
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind((host, port))
-server_socket.listen(1)
+def setup_server():
+    # Server setup
+    host = 'localhost'
+    port = 5678
 
-print("Server is listening on: {}:{}".format(host, port))
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((host, port))
+    server_socket.listen(1)
+
+    print("Server is listening on: {}:{}".format(host, port))
+
+    return server_socket
+
+server_socket = setup_server()
+
+
 
 def update_scores(email, sender_score, email_score):
     cursor.execute('SELECT * FROM email_scores WHERE email=?', (email,))
@@ -51,6 +60,7 @@ def update_scores(email, sender_score, email_score):
     db.commit()
     update_treeview()
 
+
 def get_average_scores():
     cursor.execute('''
         SELECT email, 
@@ -60,6 +70,7 @@ def get_average_scores():
         FROM email_scores
     ''')
     return cursor.fetchall()
+
 
 def get_email_info(email):
     cursor.execute('''
@@ -72,11 +83,14 @@ def get_email_info(email):
     ''', (email,))
     return cursor.fetchone()
 
+
 def update_treeview():
     for row in tree.get_children():
         tree.delete(row)
     for row in get_average_scores():
-        tree.insert('', 'end', values=row)
+        displayed_email = extract_email(row[0])
+        tree.insert('', 'end', values=(displayed_email, row[1], row[2], row[3]))
+
 
 def send_email_info(client_socket, email):
     info = get_email_info(email)
@@ -93,6 +107,7 @@ def send_email_info(client_socket, email):
             "So check it as usual with the care needed."
         )
     client_socket.sendall(message.encode('utf-8'))
+
 
 def handle_client(client_socket):
     while True:
@@ -117,16 +132,19 @@ def handle_client(client_socket):
     update_scores(email, sender_score, email_score)
     client_socket.close()
 
+
 def accept_connections():
     while True:
         client_socket, address = server_socket.accept()
-        print("Connection from client: ", address)
+        print("\nConnection from client: ", address)
         client_thread = threading.Thread(target=handle_client, args=(client_socket,))
         client_thread.start()
+
 
 # Tkinter setup
 root = tk.Tk()
 root.title("Email Scores")
+
 
 def search_email():
     search_term = search_entry.get()
@@ -141,14 +159,30 @@ def search_email():
         WHERE email LIKE ?
     ''', ('%' + search_term + '%',))
     for row in cursor.fetchall():
-        tree.insert('', 'end', values=row)
+        displayed_email = extract_email(row[0])
+        tree.insert('', 'end', values=(displayed_email, row[1], row[2], row[3]))
+
+
+def extract_email(full_email):
+    match = re.search(r'<(.+?)>', full_email)
+    if match:
+        return match.group(1)
+    return full_email
+
 
 def sort_treeview(column, reverse):
-    data = [(tree.set(child, column), child) for child in tree.get_children('')]
+    def convert(value):
+        try:
+            return float(value)
+        except ValueError:
+            return value
+
+    data = [(convert(tree.set(child, column)), child) for child in tree.get_children('')]
     data.sort(reverse=reverse)
     for index, (value, child) in enumerate(data):
         tree.move(child, '', index)
     tree.heading(column, command=lambda: sort_treeview(column, not reverse))
+
 
 tree = ttk.Treeview(root, columns=("Email", "Avg Sender Score", "Avg Email Score", "Count of Checks"), show='headings')
 tree.heading("Email", text="Email", command=lambda: sort_treeview("Email", False))

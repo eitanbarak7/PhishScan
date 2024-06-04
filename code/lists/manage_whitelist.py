@@ -31,7 +31,7 @@ class EmailManagerApp:
 
     def load_emails(self):
         try:
-            with open(r"C:\Users\Eitan\PycharmProjects\email\code\lists\whitelist_file.txt", "r") as file:
+            with open(r"C:\Users\Eitan\PycharmProjects\PhishScan\code\lists\whitelist_file.txt", "r") as file:
                 emails = file.readlines()
                 for email in emails:
                     self.email_listbox.insert(tk.END, email.strip())
@@ -80,7 +80,7 @@ class EmailManagerApp:
             messagebox.showwarning("Warning", "Please select an email to delete.")
 
     def save_emails(self):
-        with open(r"C:\Users\Eitan\PycharmProjects\email\code\lists\whitelist_file.txt", "w") as file:
+        with open(r"C:\Users\Eitan\PycharmProjects\PhishScan\code\lists\whitelist_file.txt", "w") as file:
             emails = self.email_listbox.get(0, tk.END)
             for email in emails:
                 file.write(email + "\n")
@@ -93,7 +93,7 @@ def is_valid_email(email):
 
 def is_email_blacklisted(email):
     try:
-        with open(r"C:\Users\Eitan\PycharmProjects\email\code\lists\blacklist_file.txt", "r") as file:
+        with open(r"C:\Users\Eitan\PycharmProjects\PhishScan\code\lists\blacklist_file.txt", "r") as file:
             blacklisted_emails = file.readlines()
             for blacklisted_email in blacklisted_emails:
                 if blacklisted_email.strip().lower() == email.strip().lower():
