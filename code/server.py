@@ -3,6 +3,7 @@ import sqlite3
 import tkinter as tk
 from tkinter import ttk
 import threading
+import re
 
 # Database setup
 db = sqlite3.connect('email_scores.db', check_same_thread=False)
@@ -76,7 +77,8 @@ def update_treeview():
     for row in tree.get_children():
         tree.delete(row)
     for row in get_average_scores():
-        tree.insert('', 'end', values=row)
+        displayed_email = extract_email(row[0])
+        tree.insert('', 'end', values=(displayed_email, row[1], row[2], row[3]))
 
 def send_email_info(client_socket, email):
     info = get_email_info(email)
@@ -120,7 +122,7 @@ def handle_client(client_socket):
 def accept_connections():
     while True:
         client_socket, address = server_socket.accept()
-        print("Connection from client: ", address)
+        print("\nConnection from client: ", address)
         client_thread = threading.Thread(target=handle_client, args=(client_socket,))
         client_thread.start()
 
@@ -141,10 +143,22 @@ def search_email():
         WHERE email LIKE ?
     ''', ('%' + search_term + '%',))
     for row in cursor.fetchall():
-        tree.insert('', 'end', values=row)
+        displayed_email = extract_email(row[0])
+        tree.insert('', 'end', values=(displayed_email, row[1], row[2], row[3]))
 
+def extract_email(full_email):
+    match = re.search(r'<(.+?)>', full_email)
+    if match:
+        return match.group(1)
+    return full_email
 def sort_treeview(column, reverse):
-    data = [(tree.set(child, column), child) for child in tree.get_children('')]
+    def convert(value):
+        try:
+            return float(value)
+        except ValueError:
+            return value
+
+    data = [(convert(tree.set(child, column)), child) for child in tree.get_children('')]
     data.sort(reverse=reverse)
     for index, (value, child) in enumerate(data):
         tree.move(child, '', index)
