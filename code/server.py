@@ -4,6 +4,18 @@ import tkinter as tk
 from tkinter import ttk
 import threading
 import re
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+
+# Generate server's key pair
+server_private_key = rsa.generate_private_key(
+    public_exponent=65537,
+    key_size=2048,
+    backend=default_backend()
+)
+server_public_key = server_private_key.public_key()
 
 # Database setup
 db = sqlite3.connect('email_scores.db', check_same_thread=False)
@@ -80,7 +92,7 @@ def update_treeview():
         displayed_email = extract_email(row[0])
         tree.insert('', 'end', values=(displayed_email, row[1], row[2], row[3]))
 
-def send_email_info(client_socket, email):
+def send_email_info(client_socket, email, cipher_suite):
     info = get_email_info(email)
     if info:
         message = (
@@ -94,30 +106,74 @@ def send_email_info(client_socket, email):
             "It doesn't mean this isn't safe, this is just a parameter we can't use now. "
             "So check it as usual with the care needed."
         )
-    client_socket.sendall(message.encode('utf-8'))
+    encrypted_message = cipher_suite.encrypt(message.encode('utf-8'))
+    client_socket.sendall(encrypted_message)
+
+
 
 def handle_client(client_socket):
-    while True:
-        client_secret = client_socket.recv(100000).decode('utf-8')
-        print("Email From: " + client_secret)
-        email = client_secret
-        send_email_info(client_socket, email)
-        break
+    try:
+        # Receive client's public key
+        client_public_key_pem = client_socket.recv(1024).decode()
+        client_public_key = serialization.load_pem_public_key(
+            client_public_key_pem.encode(),
+            backend=default_backend()
+        )
+        print("Received client's public key.")
 
-    while True:
-        client_secret = client_socket.recv(100000).decode('utf-8')
-        print("Sender's Email Score: " + client_secret)
-        sender_score = int(client_secret)
-        break
+        # Send server's public key to the client
+        server_public_key_pem = server_public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ).decode()
+        client_socket.send(server_public_key_pem.encode())
+        print("Sent server's public key to the client.")
 
-    while True:
-        client_secret = client_socket.recv(100000).decode('utf-8')
-        print("Whole Email Score: " + client_secret)
-        email_score = int(client_secret)
-        break
+        # Generate a key for encryption
+        key = Fernet.generate_key()
+        cipher_suite = Fernet(key)
+        print("Generated encryption key.")
 
-    update_scores(email, sender_score, email_score)
-    client_socket.close()
+        # Send the encryption key to the client
+        client_socket.send(key)
+        print("Sent encryption key to the client.")
+
+        while True:
+            encrypted_data = client_socket.recv(100000)
+            print("Received encrypted data from the client.")
+            decrypted_data = cipher_suite.decrypt(encrypted_data)
+            print("Decrypted data:", decrypted_data)
+            client_secret = decrypted_data.decode('utf-8')
+            print("Email From: " + client_secret)
+            email = client_secret
+            send_email_info(client_socket, email, cipher_suite)
+            break
+
+        while True:
+            encrypted_data = client_socket.recv(100000)
+            print("Received encrypted data from the client.")
+            decrypted_data = cipher_suite.decrypt(encrypted_data)
+            print("Decrypted data:", decrypted_data)
+            client_secret = decrypted_data.decode('utf-8')
+            print("Sender's Email Score: " + client_secret)
+            sender_score = int(client_secret)
+            break
+
+        while True:
+            encrypted_data = client_socket.recv(100000)
+            print("Received encrypted data from the client.")
+            decrypted_data = cipher_suite.decrypt(encrypted_data)
+            print("Decrypted data:", decrypted_data)
+            client_secret = decrypted_data.decode('utf-8')
+            print("Whole Email Score: " + client_secret)
+            email_score = int(client_secret)
+            break
+
+        update_scores(email, sender_score, email_score)
+        client_socket.close()
+    except Exception as e:
+        print("Error handling client:", str(e))
+        client_socket.close()
 
 def accept_connections():
     while True:
@@ -163,6 +219,7 @@ def sort_treeview(column, reverse):
     for index, (value, child) in enumerate(data):
         tree.move(child, '', index)
     tree.heading(column, command=lambda: sort_treeview(column, not reverse))
+
 
 tree = ttk.Treeview(root, columns=("Email", "Avg Sender Score", "Avg Email Score", "Count of Checks"), show='headings')
 tree.heading("Email", text="Email", command=lambda: sort_treeview("Email", False))
