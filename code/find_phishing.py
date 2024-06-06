@@ -10,8 +10,8 @@ from tkinter import ttk
 client = OpenAI()
 
 
-def define_sender_email_score_with_ai(email, response):
-    content_for_request = email.sender + "\n" + response
+def define_sender_email_score_with_ai(email, response2):
+    content_for_request = email.sender + "\n" + response2
     # Make a request to OpenAI's chat model
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -83,11 +83,11 @@ IMPORTANT: Please provide only the score from 1 to 10 for the likelihood of trus
 
 def check_if_sender_first_email(email):
     sender = email.sender
-
     if how_many_times_sender(sender) <= 1:
         return True
     else:
         return False
+    return False
 
 
 def check_if_in_white_list(email):
@@ -110,10 +110,10 @@ def check_if_in_black_list(email):
 
 def check_sender(email, response):
     sender_status = {}
-    if check_if_sender_first_email(email):
+    '''if check_if_sender_first_email(email):
         sender_status["First_time_sender"] = True
     else:
-        sender_status["First_time_sender"] = False
+        sender_status["First_time_sender"] = False'''
 
     if check_if_in_white_list(email):
         sender_status["Score"] = 1

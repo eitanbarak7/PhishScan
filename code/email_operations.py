@@ -61,10 +61,11 @@ def how_many_times_sender(sender):
 
 
 def check_whitelist(sender_email):
+    print("debug4")
     whitelist_file = r"C:\Users\Eitan\PycharmProjects\PhishScan\code\lists\whitelist_file.txt"
     with open(whitelist_file, 'r') as file:
         whitelist_emails = file.read().splitlines()
-
+    print("debug5")
     # Check if the sender email is in the whitelist
     if sender_email in whitelist_emails:
         return True
