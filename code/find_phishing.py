@@ -1,19 +1,34 @@
 import socket
 
+import cryptography
+
 from email_operations import *
 import json
 from openai import OpenAI
 import tkinter as tk
 from tkinter import ttk
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+
+# Generate client's key pair
+client_private_key = rsa.generate_private_key(
+    public_exponent=65537,
+    key_size=2048,
+    backend=default_backend()
+)
+client_public_key = client_private_key.public_key()
+
 
 # Initialize OpenAI client
-client = OpenAI()
+clientOpenAI = OpenAI()
 
 
 def define_sender_email_score_with_ai(email, response2):
     content_for_request = email.sender + "\n" + response2
     # Make a request to OpenAI's chat model
-    response = client.chat.completions.create(
+    response = clientOpenAI.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {
@@ -27,10 +42,6 @@ I will also give you the sender average received score (checked by my server in 
 
 You will try to answer for me on a score scale of 1-10 how likely this email is trusted or maybe suspicious of a phishing attack.
 
-REPLY IN THIS FORMAT, ONLY:
-FINAL SCORE: #
-COMMENT: #
-
 Answer with the score you finally got to by the calculations (1 will be trusted, 10 will be very suspicious).
 
 BEFORE YOU ANSWER:
@@ -42,7 +53,11 @@ Look for any typos or mistakes in the address or name, especially if it's from a
 If it's from a large company - check that the domain is authentic and connected with the company itself
 
 IMPORTANT: Please provide only the score from 1 to 10 for the likelihood of trustworthiness or suspicion of the email after the calculations.
-
+Please respond in the following JSON format only:
+{
+    "Score": <integer from 1 to 10>,
+    "Comment": "<your explanation>"
+}
     """
             },
             {
@@ -56,29 +71,13 @@ IMPORTANT: Please provide only the score from 1 to 10 for the likelihood of trus
         frequency_penalty=0,
         presence_penalty=0
     )
-    # sender_score =
 
-    email_score = response.choices[0].message.content
-
-    # Split the email_score string into lines
-    lines = email_score.split('\n')
-
-    # Initialize an empty dictionary to store the result
-    result = {}
-
-    # Iterate over each line to extract the score and comment
-    for line in lines:
-        if line.startswith("FINAL SCORE:"):
-            # Extract the score by splitting the line and converting the score to an integer
-            score = int(line.split(":")[1].strip())
-            result["Score"] = score
-        elif line.startswith("COMMENT:"):
-            # Extract the comment by removing the "COMMENT:" prefix
-            comment = line.replace("COMMENT:", "").strip()
-            result["Comment"] = comment
-
-    # Print the resulting dictionary
-    return result
+    try:
+        result = response.choices[0].message.content.strip()
+        result = json.loads(result)
+        return result
+    except (ValueError, json.JSONDecodeError):
+        return {"Score": 5, "Comment": "Unable to parse the AI response."}
 
 
 def check_if_sender_first_email(email):
@@ -110,25 +109,32 @@ def check_if_in_black_list(email):
 
 def check_sender(email, response):
     sender_status = {}
-    '''if check_if_sender_first_email(email):
-        sender_status["First_time_sender"] = True
-    else:
-        sender_status["First_time_sender"] = False'''
 
-    if check_if_in_white_list(email):
-        sender_status["Score"] = 1
-        sender_status["Comment"] = "The email is likely trusted because the user added this email to it's white-list"
-        return sender_status
-    if check_if_in_black_list(email):
-        sender_status["Score"] = 10
-        sender_status[
-            "Comment"] = "The email is very likely untrusted because the user added this email to it's black-list. This is the worst sender's score."
-        return sender_status
-    else:
+    try:
+        if check_if_in_white_list(email):
+            sender_status["Score"] = 1
+            sender_status["Comment"] = "The email is likely trusted because the user added this email to it's white-list"
+            return sender_status
+    except Exception as e:
+        print(f"Error checking white list: {str(e)}")
+
+    try:
+        if check_if_in_black_list(email):
+            sender_status["Score"] = 10
+            sender_status["Comment"] = "The email is very likely untrusted because the user added this email to it's black-list. This is the worst sender's score."
+            return sender_status
+    except Exception as e:
+        print(f"Error checking black list: {str(e)}")
+
+
+    try:
         result = define_sender_email_score_with_ai(email, response)
-        sender_status["Score"] = result["Score"]
-        sender_status["Comment"] = "Based on AI's calculations: ", result["Comment"]
-        return sender_status
+        sender_status["Score"] = result['Score']
+        sender_status["Comment"] = "Based on AI's calculations: " + result['Comment']
+    except (KeyError, TypeError) as e:
+        print(f"Error accessing result dictionary: {str(e)}")
+
+    return sender_status
 
 
 def check_email_text(email, sender_status, response):
@@ -146,7 +152,7 @@ def check_email_text(email, sender_status, response):
                            "Email Address average score": response}
 
     # Make a request to OpenAI's chat model
-    response = client.chat.completions.create(
+    response = clientOpenAI.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {
@@ -199,36 +205,173 @@ REPLY IN ENGLISH ONLY. In a DICT json format!
 
 
 def start_finding(done_queue, email):
-    host = 'localhost'
-    port = 5678
+    try:
+        host = 'localhost'
+        port = 5678
 
-    print("Sender's details: ", email.sender)
+        print("Sender's details: ", email.sender)
 
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((host, port))
-    email_from_to_socket = email.sender
-    client_socket.send(email_from_to_socket.encode('utf-8'))
+        try:
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        except socket.error as e:
+            print(f"Error creating socket: {str(e)}")
+            return
 
-    # Receive response containing average scores or message from the server
-    response = client_socket.recv(100000).decode('utf-8')
-    print(response)
+        try:
+            client_socket.connect((host, port))
+        except socket.error as e:
+            print(f"Error connecting to the server: {str(e)}")
+            return
 
-    sender_status = check_sender(email, response)
-    print(sender_status)
+        print("Connected to the server.")
 
-    sender_status_to_socket_ = str(sender_status["Score"])
-    client_socket.send(sender_status_to_socket_.encode('utf-8'))
+        # Send client's public key to the server
+        try:
+            client_public_key_pem = client_public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            ).decode()
+        except ValueError as e:
+            print(f"Error encoding public key: {str(e)}")
+            return
 
-    email_status_str = check_email_text(email, sender_status, response)
-    email_status = json.loads(email_status_str)
-    print(email_status)
+        try:
+            client_socket.send(client_public_key_pem.encode())
+        except socket.error as e:
+            print(f"Error sending public key to the server: {str(e)}")
+            return
 
-    email_status_to_socket_ = str(email_status["Phishing Detected Score"])
-    client_socket.send(email_status_to_socket_.encode('utf-8'))
+        print("Sent client's public key to the server.")
 
-    done_queue.put("done")
+        # Receive server's public key
+        try:
+            server_public_key_pem = client_socket.recv(1024).decode()
+        except socket.error as e:
+            print(f"Error receiving server's public key: {str(e)}")
+            return
 
-    show_sender_screen(email, sender_status, email_status, response)
+        try:
+            server_public_key = serialization.load_pem_public_key(
+                server_public_key_pem.encode(),
+                backend=default_backend()
+            )
+        except ValueError as e:
+            print(f"Error loading server's public key: {str(e)}")
+            return
+
+        print("Received server's public key.")
+
+        # Receive the encryption key from the server
+        try:
+            key = client_socket.recv(100000)
+        except socket.error as e:
+            print(f"Error receiving encryption key from the server: {str(e)}")
+            return
+
+        try:
+            cipher_suite = Fernet(key)
+        except ValueError as e:
+            print(f"Error creating cipher suite: {str(e)}")
+            return
+
+        print("Received encryption key from the server.")
+
+        email_from_to_socket = email.sender
+        try:
+            encrypted_email = cipher_suite.encrypt(email_from_to_socket.encode('utf-8'))
+        except cryptography.fernet.InvalidToken as e:
+            print(f"Error encrypting email data: {str(e)}")
+            return
+
+        print("Original email data:", email_from_to_socket)
+        print("Encrypted email data:", encrypted_email)
+
+        try:
+            client_socket.send(encrypted_email)
+        except socket.error as e:
+            print(f"Error sending encrypted email data to the server: {str(e)}")
+            return
+
+        print("Sent encrypted email data to the server.")
+
+        # Receive encrypted response from the server
+        try:
+            encrypted_response = client_socket.recv(100000)
+        except socket.error as e:
+            print(f"Error receiving encrypted response from the server: {str(e)}")
+            return
+
+        print("Encrypted response received:", encrypted_response)
+
+        try:
+            response = cipher_suite.decrypt(encrypted_response).decode('utf-8')
+        except cryptography.fernet.InvalidToken as e:
+            print(f"Error decrypting response: {str(e)}")
+            return
+
+        print("Decrypted response:", response)
+
+        try:
+            sender_status = check_sender(email, response)
+        except ValueError as e:
+            print(f"Error checking sender status (ValueError): {str(e)}")
+            return
+        except TypeError as e:
+            print(f"Error checking sender status (TypeError): {str(e)}")
+            return
+        except Exception as e:
+            print(f"Error checking sender status (other exception): {str(e)}")
+            return
+
+        print("Sender status:", sender_status)
+        sender_status_to_socket_ = str(sender_status["Score"])
+        try:
+            encrypted_sender_status = cipher_suite.encrypt(sender_status_to_socket_.encode('utf-8'))
+        except cryptography.fernet.InvalidToken as e:
+            print(f"Error encrypting sender status: {str(e)}")
+            return
+
+        print("Encrypted sender status:", encrypted_sender_status)
+
+        try:
+            client_socket.send(encrypted_sender_status)
+        except socket.error as e:
+            print(f"Error sending encrypted sender status to the server: {str(e)}")
+            return
+
+        print("Sent encrypted sender status to the server.")
+
+        email_status_str = check_email_text(email, sender_status, response)
+        try:
+            email_status = json.loads(email_status_str)
+        except ValueError as e:
+            print(f"Error parsing email status JSON: {str(e)}")
+            return
+
+        print("Email status:", email_status)
+
+        email_status_to_socket_ = str(email_status["Phishing Detected Score"])
+        try:
+            encrypted_email_status = cipher_suite.encrypt(email_status_to_socket_.encode('utf-8'))
+        except cryptography.fernet.InvalidToken as e:
+            print(f"Error encrypting email status: {str(e)}")
+            return
+
+        print("Encrypted email status:", encrypted_email_status)
+
+        try:
+            client_socket.send(encrypted_email_status)
+        except socket.error as e:
+            print(f"Error sending encrypted email status to the server: {str(e)}")
+            return
+
+        print("Sent encrypted email status to the server.")
+
+        done_queue.put("done")
+
+        show_sender_screen(email, sender_status, email_status, response)
+    except Exception as e:
+        print("Error during email analysis:", str(e))
 
 
 def show_sender_screen(email, sender_status, email_status, response):
