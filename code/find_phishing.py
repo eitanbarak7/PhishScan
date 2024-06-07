@@ -369,7 +369,7 @@ def start_finding(done_queue, email):
         print("Sent encrypted email status to the server.")
 
         done_queue.put("done")
-
+        client_socket.close()
         show_sender_screen(email, sender_status, email_status, response)
     except Exception as e:
         print("Error during email analysis:", str(e))
