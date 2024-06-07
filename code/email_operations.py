@@ -60,6 +60,7 @@ def download_attachments(email_listbox, emails):
         # User canceled the download
         return
 
+
 def how_many_times_sender(sender):
 
     emails = fetch_emails()  # Assuming fetch_emails() fetches all emails
@@ -74,7 +75,7 @@ def check_whitelist(sender_email):
     # Dynamically construct the path to the whitelist file based on the script's location
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
-    whitelist_file = os.path.join(project_root, 'lists', 'whitelist_file.txt')
+    whitelist_file = os.path.join(project_root, 'code', 'lists', 'whitelist_file.txt')
 
     with open(whitelist_file, 'r') as file:
         whitelist_emails = file.read().splitlines()
@@ -90,7 +91,7 @@ def check_blacklist(sender_email):
     # Dynamically construct the path to the blacklist file based on the script's location
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
-    blacklist_file_path = os.path.join(project_root, 'lists', 'blacklist_file.txt')
+    blacklist_file_path = os.path.join(project_root, 'code', 'lists', 'blacklist_file.txt')
 
     # Read the blacklist file and extract email addresses
     with open(blacklist_file_path, 'r') as file:

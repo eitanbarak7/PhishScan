@@ -8,18 +8,23 @@ import tkinter as tk
 from find_phishing import start_finding
 from screens import start_loading_screen
 
+# Function to set up GUI elements
+
 
 def setup_gui(window, emails, show_email_func, download_attachments_func):
     bg_color = "#f0f0f0"
     create_sidebar(window, bg_color, emails, show_email_func, download_attachments_func)
 
+# Function to create the sidebar with buttons and email list
+
 
 def create_sidebar(window, bg_color, emails, show_email_func, download_attachments_func):
+    # Function to create a listbox with scrollbar
     def create_listbox_with_scrollbar(parent_frame, emails):
         scrollbar = tk.Scrollbar(parent_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        email_listbox = create_email_listbox(parent_frame, emails)  # Utilize existing function
+        email_listbox = create_email_listbox(parent_frame, emails)
         email_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         email_listbox.config(yscrollcommand=scrollbar.set)
@@ -27,24 +32,26 @@ def create_sidebar(window, bg_color, emails, show_email_func, download_attachmen
 
         return email_listbox
 
+    # Function to manage the whitelist
     def manage_whitelist():
         try:
             # Dynamically construct the path to the manage_whitelist.py file based on the script's location
             script_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.dirname(script_dir)
-            manage_whitelist_path = os.path.join(project_root, 'lists', 'manage_whitelist.py')
+            manage_whitelist_path = os.path.join(project_root, 'code', 'lists', 'manage_whitelist.py')
 
             # Execute the manage_whitelist.py file using subprocess
             subprocess.run(["python", manage_whitelist_path])
         except Exception as e:
             print("Error executing manage_whitelist.py:", e)
 
+    # Function to manage the blacklist
     def manage_blacklist():
         try:
             # Dynamically construct the path to the manage_blacklist.py file based on the script's location
             script_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.dirname(script_dir)
-            manage_blacklist_path = os.path.join(project_root, 'lists', 'manage_blacklist.py')
+            manage_blacklist_path = os.path.join(project_root, 'code', 'lists', 'manage_blacklist.py')
 
             # Execute the manage_blacklist.py file using subprocess
             subprocess.run(["python", manage_blacklist_path])
@@ -79,13 +86,13 @@ def create_sidebar(window, bg_color, emails, show_email_func, download_attachmen
     # Add a title for the unread emails list
     title_label = tk.Label(sidebar_frame, text="Your unread emails:", font=("Arial", 14, "bold"), bg=bg_color,
                            fg="black")
-    title_label.pack(side=tk.TOP, pady=(10, 0))  # Adjust padding as needed
+    title_label.pack(side=tk.TOP, pady=(10, 0))
 
     email_listbox = create_listbox_with_scrollbar(sidebar_frame, emails)
 
     email_listbox.bind("<ButtonRelease-1>",
                        lambda event: (show_email_func(email_listbox, emails, text_area, download_button),
-                                      ))  # Call both functions when the button is clicked
+                                      ))
 
     email_frame = create_frame(window, bg_color)
     create_header_label(email_frame)
@@ -93,11 +100,15 @@ def create_sidebar(window, bg_color, emails, show_email_func, download_attachmen
     download_button = create_download_button(email_frame, download_attachments_func, email_listbox, emails)
     create_phishing_button(email_frame, email_listbox, emails)
 
+# Function to create a frame
+
 
 def create_frame(window, bg_color):
     frame = tk.Frame(window, bg=bg_color)
     frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     return frame
+
+# Function to create the email listbox
 
 
 def create_email_listbox(frame, emails):
@@ -113,11 +124,12 @@ def create_email_listbox(frame, emails):
         subject = (email.subject[:47] + "..." if len(email.subject) > 50 else email.subject)
 
         email_listbox.insert(tk.END,
-                             f"{date}{' ' * 5}{subject}")  # Display date, padding, and subject
+                             f"{date}{' ' * 5}{subject}")
 
     email_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
     return email_listbox
+
+# Function to create the header label
 
 
 def create_header_label(frame):
@@ -125,6 +137,8 @@ def create_header_label(frame):
                             fg="white", bg="#1e90ff", padx=10,
                             pady=5)
     header_label.pack(fill=tk.X)
+
+# Function to create the text area for displaying email content
 
 
 def create_text_area(frame):
@@ -135,19 +149,25 @@ def create_text_area(frame):
     text_area.config(state=tk.DISABLED)
     return text_area
 
+# Function to create the download button for attachments
+
 
 def create_download_button(frame, download_func, listbox, emails):
     download_button = tk.Button(frame, text="Download Attachments", width=20, height=2,
                                 command=lambda: download_func(listbox, emails), state=tk.DISABLED)
-    download_button.pack(side=tk.LEFT, padx=5, pady=5)  # Adjust padding as needed
+    download_button.pack(side=tk.LEFT, padx=5, pady=5)
     return download_button
+
+# Function to create the button for detecting phishing emails
 
 
 def create_phishing_button(frame, listbox, emails):
     detect_phishing_button = tk.Button(frame, text="Detect Phishing", width=20, height=2,
                                        command=lambda: find_phishing_in_message(listbox, emails), bg="red",
                                        fg="white")
-    detect_phishing_button.pack(side=tk.LEFT, padx=5, pady=5)  # Adjust padding as needed
+    detect_phishing_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+# Function to start the phishing detection process
 
 
 def find_phishing_in_message(email_listbox, emails):

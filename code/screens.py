@@ -5,16 +5,21 @@ from itertools import cycle
 
 
 def display_image_fullscreen(image_path, on_button_click):
+    """
+    Display an image in fullscreen mode with a button.
+
+    Args:
+        image_path (str): The path to the image file.
+        on_button_click (function): The function to call when the button is clicked.
+    """
     root = tk.Tk()
     root.attributes('-fullscreen', True)
     root.bind('<Escape>', lambda e: root.quit())
 
-    # Load the image
+    # Load and resize the image to fit the screen
     img = Image.open(image_path)
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
-
-    # Resize the image to fit the screen
     img = img.resize((screen_width, screen_height), Image.LANCZOS)
     img = ImageTk.PhotoImage(img)
 
@@ -36,6 +41,12 @@ def display_image_fullscreen(image_path, on_button_click):
 
 
 def start_loading_screen(queue):
+    """
+    Display a loading screen with a progress bar.
+
+    Args:
+        queue (Queue): A queue used to signal when loading is complete.
+    """
     print("Loading screen started")
 
     loading_root = tk.Tk()
@@ -73,6 +84,9 @@ def start_loading_screen(queue):
     loading_cycle = cycle(loading_text)
 
     def update_progress():
+        """
+        Update the progress bar and loading text.
+        """
         try:
             if not queue.empty():
                 queue.get_nowait()
