@@ -1,0 +1,4 @@
+simplegmail
+openai
+pillow
+cryptography
