@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 import threading
 from screens import display_image_fullscreen, start_loading_screen
@@ -50,4 +51,11 @@ def on_button_click(root):
 
 # Start the welcome screen
 if __name__ == "__main__":
-    display_image_fullscreen(r'C:\Users\Eitan\PycharmProjects\PhishScan\screens\welcome.png', on_button_click)
+    # Construct the path to the 'welcome.png' image in the 'screens' directory
+    image_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'screens', 'welcome.png')
+
+    # Check if the file exists
+    if os.path.isfile(image_path):
+        display_image_fullscreen(image_path, on_button_click)
+    else:
+        print(f"Error: The file does not exist at the path: {image_path}")

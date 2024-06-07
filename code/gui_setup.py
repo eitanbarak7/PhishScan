@@ -1,4 +1,5 @@
 import datetime
+import os
 import queue
 import subprocess
 import threading
@@ -28,15 +29,25 @@ def create_sidebar(window, bg_color, emails, show_email_func, download_attachmen
 
     def manage_whitelist():
         try:
+            # Dynamically construct the path to the manage_whitelist.py file based on the script's location
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(script_dir)
+            manage_whitelist_path = os.path.join(project_root, 'lists', 'manage_whitelist.py')
+
             # Execute the manage_whitelist.py file using subprocess
-            subprocess.run(["python", "C:\\Users\\Eitan\\PycharmProjects\\PhishScan\\code\\lists\\manage_whitelist.py"])
+            subprocess.run(["python", manage_whitelist_path])
         except Exception as e:
             print("Error executing manage_whitelist.py:", e)
 
     def manage_blacklist():
         try:
+            # Dynamically construct the path to the manage_blacklist.py file based on the script's location
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(script_dir)
+            manage_blacklist_path = os.path.join(project_root, 'lists', 'manage_blacklist.py')
+
             # Execute the manage_blacklist.py file using subprocess
-            subprocess.run(["python", "C:\\Users\\Eitan\\PycharmProjects\\PhishScan\\code\\lists\\manage_blacklist.py"])
+            subprocess.run(["python", manage_blacklist_path])
         except Exception as e:
             print("Error executing manage_blacklist.py:", e)
 

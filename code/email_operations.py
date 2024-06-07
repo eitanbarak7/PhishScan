@@ -39,7 +39,9 @@ def download_attachments(email_listbox, emails):
     # Get the selected email
     email = emails[index]
     # Directory to save attachments
-    save_dir = r"C:\Users\Eitan\PycharmProjects\PhishScan\files_from_emails"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    save_dir = os.path.join(project_root, 'files_from_emails')
 
     # Show warning and confirmation dialog
     warning_message = "Warning: The attachments in this email have not been scanned for safety. Downloading and opening these files may put your computer at risk. We recommend exercising caution and avoiding potentially unsafe files."
@@ -69,7 +71,11 @@ def how_many_times_sender(sender):
 
 
 def check_whitelist(sender_email):
-    whitelist_file = r"C:\Users\Eitan\PycharmProjects\PhishScan\code\lists\whitelist_file.txt"
+    # Dynamically construct the path to the whitelist file based on the script's location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    whitelist_file = os.path.join(project_root, 'lists', 'whitelist_file.txt')
+
     with open(whitelist_file, 'r') as file:
         whitelist_emails = file.read().splitlines()
 
@@ -81,13 +87,17 @@ def check_whitelist(sender_email):
 
 
 def check_blacklist(sender_email):
-    blacklist_file = r"C:\Users\Eitan\PycharmProjects\PhishScan\code\lists\blacklist_file.txt"
+    # Dynamically construct the path to the blacklist file based on the script's location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    blacklist_file_path = os.path.join(project_root, 'lists', 'blacklist_file.txt')
+
     # Read the blacklist file and extract email addresses
-    with open(blacklist_file, 'r') as file:
-        blacklist_file = file.read().splitlines()
+    with open(blacklist_file_path, 'r') as file:
+        blacklist_emails = file.read().splitlines()
 
     # Check if the sender email is in the blacklist
-    if sender_email in blacklist_file:
+    if sender_email in blacklist_emails:
         return True
     else:
         return False

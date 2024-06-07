@@ -1,3 +1,4 @@
+import os
 import re
 import tkinter as tk
 from tkinter import simpledialog, messagebox
@@ -35,7 +36,12 @@ class EmailManagerApp:
 
     def load_emails(self):
         try:
-            with open(r"C:\Users\Eitan\PycharmProjects\PhishScan\code\lists\blacklist_file.txt", "r") as file:
+            # Construct the path to the 'blacklist_file.txt' file
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(script_dir)
+            blacklist_file_path = os.path.join(project_root, 'lists', 'blacklist_file.txt')
+
+            with open(blacklist_file_path, "r") as file:
                 emails = file.readlines()
                 for email in emails:
                     self.email_listbox.insert(tk.END, email.strip())
@@ -85,10 +91,18 @@ class EmailManagerApp:
             messagebox.showwarning("Warning", "Please select an email to delete.")
 
     def save_emails(self):
-        with open(r"C:\Users\Eitan\PycharmProjects\PhishScan\code\lists\blacklist_file.txt", "w") as file:
-            emails = self.email_listbox.get(0, tk.END)
-            for email in emails:
-                file.write(email + "\n")
+        try:
+            # Construct the path to the 'blacklist_file.txt' file
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(script_dir)
+            blacklist_file_path = os.path.join(project_root, 'lists', 'blacklist_file.txt')
+
+            with open(blacklist_file_path, "w") as file:
+                emails = self.email_listbox.get(0, tk.END)
+                for email in emails:
+                    file.write(email + "\n")
+        except FileNotFoundError:
+            messagebox.showerror("Error", "Could not save to blacklist file.")
 
 
 def is_valid_email(email):
@@ -101,7 +115,12 @@ def is_email_whitelisted(email):
     Checks if the provided email address is whitelisted.
     """
     try:
-        with open(r"C:\Users\Eitan\PycharmProjects\PhishScan\code\lists\whitelist_file.txt", "r") as file:
+        # Construct the path to the 'whitelist_file.txt' file
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(script_dir)
+        whitelist_file_path = os.path.join(project_root, 'lists', 'whitelist_file.txt')
+
+        with open(whitelist_file_path, "r") as file:
             whitelisted_emails = file.readlines()
             for whitelisted_email in whitelisted_emails:
                 if whitelisted_email.strip().lower() == email.strip().lower():
