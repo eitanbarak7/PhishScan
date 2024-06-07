@@ -4,8 +4,8 @@ __pycache__/
 *$py.class
 
 #white_list and black_list
-blacklist_file.txt
-whitelist_file.txt
+lists/whitelist_file.txt
+lists/blacklist_file.txt
 
 
 # C extensions
