@@ -158,7 +158,7 @@ def find_phishing_in_message(email_listbox, emails):
     find_with_load()
 
 
-def detect_phishing_window(email_listbox, emails):
+'''def detect_phishing_window(email_listbox, emails):
     phishing_window = tk.Toplevel()
     phishing_window.title("Detect Phishing")
     phishing_window.geometry("600x400")
@@ -197,4 +197,4 @@ def detect_phishing_window(email_listbox, emails):
     y_coordinate = (phishing_window.winfo_screenheight() // 2) - (height // 2)
     phishing_window.geometry(f"+{x_coordinate}+{y_coordinate}")
 
-    pass
+    pass'''

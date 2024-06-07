@@ -40,15 +40,23 @@ def download_attachments(email_listbox, emails):
     email = emails[index]
     # Directory to save attachments
     save_dir = r"C:\Users\Eitan\PycharmProjects\PhishScan\files_from_emails"
-    # Download attachments
-    try:
-        for attachment in email.attachments:
-            filename = os.path.join(save_dir, attachment.filename)
-            attachment.save(filename, overwrite=True)
-        messagebox.showinfo("Download Complete", "Attachments downloaded successfully!")
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to download attachments: {e}")
 
+    # Show warning and confirmation dialog
+    warning_message = "Warning: The attachments in this email have not been scanned for safety. Downloading and opening these files may put your computer at risk. We recommend exercising caution and avoiding potentially unsafe files."
+    confirmation = messagebox.askokcancel("Proceed with Caution", warning_message, icon="warning", default="cancel")
+
+    if confirmation:
+        # Download attachments
+        try:
+            for attachment in email.attachments:
+                filename = os.path.join(save_dir, attachment.filename)
+                attachment.save(filename, overwrite=True)
+            messagebox.showinfo("Download Complete", "Attachments downloaded successfully!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to download attachments: {e}")
+    else:
+        # User canceled the download
+        return
 
 def how_many_times_sender(sender):
 

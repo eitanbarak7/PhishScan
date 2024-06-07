@@ -25,8 +25,8 @@ client_public_key = client_private_key.public_key()
 clientOpenAI = OpenAI()
 
 
-def define_sender_email_score_with_ai(email, response2):
-    content_for_request = email.sender + "\n" + response2
+def define_sender_email_score_with_ai(email, response_text):
+    content_for_request = email.sender + "\n" + response_text
     # Make a request to OpenAI's chat model
     response = clientOpenAI.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -168,10 +168,11 @@ Safe: ### (write a text: explain here the safe things you found on the email)
 Danger: ### (write a text: explain here the dangerous or suspicious things you found on the email)
 Comment: #### (Here, add a comment explaining why you chose this specific score, explain your logic, and give me quotes from the texts to base your decision. give explanations. summarize the whole thing
 
+THE MOST DANGEROUS RISKS ARE: FAKE URL'S, URGENCY, PRIVATE DETAILS SHARING REQUEST, AND ALL PHISHING AND SPAM EMAILS SIGNS.
 Levels you MUST CHECK: check the email content properly:
 1. Check the score for the email's sender that you've been given. check the rest of the email based on this, but don't put all of your trust in it, just get help with it. sometimes it's not that accurate, take that in charge. If the sender appears on white-list or black-list, make sure to pay attention!
 2. Check the email subject. is it suspicious? does it contain promises or "clickbait"?
-3. If there are URLs in the email, do they look safe? Are the domains authentic and trusted? - Fake URLs are highly suspicious!
+3. If there are URLs in the email, do they look safe? Are the domains authentic and trusted? - Fake URLs are highly suspicious! check if they are the original URL's of the brand or company, if not - it's very bad.
 4. Check the email content itself - based on your AI's training and the way you know to recognize cyber and phishing attacks, do you find the email text safe or not?
 5. Any other methods if needed
 6. If you think the email is safe, don't hesitate to give a score of 1-2...
@@ -421,9 +422,12 @@ def show_sender_screen(email, sender_status, email_status, response):
     if sender_score <= 3:
         sender_color = "green"
         sender_comment = "Safe"
-    elif sender_score <= 6:
+    elif sender_score <= 5:
         sender_color = "orange"
         sender_comment = "Probably Safe"
+    elif sender_score <= 7:
+        sender_color = "orange"
+        sender_comment = "Pay Attention"
     else:
         sender_color = "red"
         sender_comment = "Unsafe"
