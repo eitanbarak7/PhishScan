@@ -41,7 +41,11 @@ server_socket.listen(1)
 
 print("Server is listening on: {}:{}".format(host, port))
 
+def escape_string(value):
+    return str(sqlite3.Binary(value.encode()), 'utf-8')
+
 def update_scores(email, sender_score, email_score):
+    email = escape_string(email)
     cursor.execute('SELECT * FROM email_scores WHERE email=?', (email,))
     row = cursor.fetchone()
 
@@ -50,24 +54,26 @@ def update_scores(email, sender_score, email_score):
         sender_score_count = row[2] + 1
         email_score_sum = row[3] + email_score
         email_score_count = row[4] + 1
-        cursor.execute('''
-            UPDATE email_scores 
+        query = '''
+            UPDATE email_scores
             SET sender_score_sum=?, sender_score_count=?, email_score_sum=?, email_score_count=?
             WHERE email=?
-        ''', (sender_score_sum, sender_score_count, email_score_sum, email_score_count, email))
+        '''
+        cursor.execute(query, (sender_score_sum, sender_score_count, email_score_sum, email_score_count, email))
     else:
-        cursor.execute('''
+        query = '''
             INSERT INTO email_scores (email, sender_score_sum, sender_score_count, email_score_sum, email_score_count)
             VALUES (?, ?, ?, ?, ?)
-        ''', (email, sender_score, 1, email_score, 1))
+        '''
+        cursor.execute(query, (email, sender_score, 1, email_score, 1))
 
     db.commit()
     update_treeview()
 
 def get_average_scores():
     cursor.execute('''
-        SELECT email, 
-               ROUND(sender_score_sum*1.0/sender_score_count, 2) as avg_sender_score, 
+        SELECT email,
+               ROUND(sender_score_sum*1.0/sender_score_count, 2) as avg_sender_score,
                ROUND(email_score_sum*1.0/email_score_count, 2) as avg_email_score,
                sender_score_count
         FROM email_scores
@@ -75,14 +81,16 @@ def get_average_scores():
     return cursor.fetchall()
 
 def get_email_info(email):
-    cursor.execute('''
-        SELECT email, 
-               ROUND(sender_score_sum*1.0/sender_score_count, 2) as avg_sender_score, 
+    email = escape_string(email)
+    query = '''
+        SELECT email,
+               ROUND(sender_score_sum*1.0/sender_score_count, 2) as avg_sender_score,
                ROUND(email_score_sum*1.0/email_score_count, 2) as avg_email_score,
                sender_score_count
         FROM email_scores
         WHERE email=?
-    ''', (email,))
+    '''
+    cursor.execute(query, (email,))
     return cursor.fetchone()
 
 def update_treeview():
@@ -108,7 +116,6 @@ def send_email_info(client_socket, email, cipher_suite):
         )
     encrypted_message = cipher_suite.encrypt(message.encode('utf-8'))
     client_socket.sendall(encrypted_message)
-
 
 
 def handle_client(client_socket):
@@ -190,14 +197,15 @@ def search_email():
     search_term = search_entry.get()
     for row in tree.get_children():
         tree.delete(row)
-    cursor.execute('''
-        SELECT email, 
-               ROUND(sender_score_sum*1.0/sender_score_count, 2) as avg_sender_score, 
+    query = '''
+        SELECT email,
+               ROUND(sender_score_sum*1.0/sender_score_count, 2) as avg_sender_score,
                ROUND(email_score_sum*1.0/email_score_count, 2) as avg_email_score,
                sender_score_count
         FROM email_scores
         WHERE email LIKE ?
-    ''', ('%' + search_term + '%',))
+    '''
+    cursor.execute(query, ('%' + search_term + '%',))
     for row in cursor.fetchall():
         displayed_email = extract_email(row[0])
         tree.insert('', 'end', values=(displayed_email, row[1], row[2], row[3]))
@@ -207,6 +215,7 @@ def extract_email(full_email):
     if match:
         return match.group(1)
     return full_email
+
 def sort_treeview(column, reverse):
     def convert(value):
         try:
@@ -219,7 +228,6 @@ def sort_treeview(column, reverse):
     for index, (value, child) in enumerate(data):
         tree.move(child, '', index)
     tree.heading(column, command=lambda: sort_treeview(column, not reverse))
-
 
 tree = ttk.Treeview(root, columns=("Email", "Avg Sender Score", "Avg Email Score", "Count of Checks"), show='headings')
 tree.heading("Email", text="Email", command=lambda: sort_treeview("Email", False))
