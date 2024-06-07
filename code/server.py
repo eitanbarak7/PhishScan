@@ -1,3 +1,4 @@
+# Import necessary libraries
 import socket
 import sqlite3
 import tkinter as tk
@@ -9,7 +10,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 
-# Generate server's key pair
+# Generate server's key pair for encryption
 server_private_key = rsa.generate_private_key(
     public_exponent=65537,
     key_size=2048,
@@ -17,7 +18,7 @@ server_private_key = rsa.generate_private_key(
 )
 server_public_key = server_private_key.public_key()
 
-# Database setup
+# Database setup: Creating SQLite database for storing email scores
 db = sqlite3.connect('email_scores.db', check_same_thread=False)
 cursor = db.cursor()
 cursor.execute('''
@@ -31,7 +32,7 @@ cursor.execute('''
 ''')
 db.commit()
 
-# Server setup
+# Server setup: Setting up socket for communication
 host = 'localhost'
 port = 5678
 
@@ -41,8 +42,14 @@ server_socket.listen(1)
 
 print("Server is listening on: {}:{}".format(host, port))
 
+# Function to escape string to avoid SQL injection
+
+
 def escape_string(value):
     return str(sqlite3.Binary(value.encode()), 'utf-8')
+
+# Function to update email scores in the database
+
 
 def update_scores(email, sender_score, email_score):
     email = escape_string(email)
@@ -70,6 +77,9 @@ def update_scores(email, sender_score, email_score):
     db.commit()
     update_treeview()
 
+# Function to get average scores from the database
+
+
 def get_average_scores():
     cursor.execute('''
         SELECT email,
@@ -79,6 +89,9 @@ def get_average_scores():
         FROM email_scores
     ''')
     return cursor.fetchall()
+
+# Function to get email information from the database
+
 
 def get_email_info(email):
     email = escape_string(email)
@@ -93,12 +106,18 @@ def get_email_info(email):
     cursor.execute(query, (email,))
     return cursor.fetchone()
 
+# Function to update the treeview with latest data
+
+
 def update_treeview():
     for row in tree.get_children():
         tree.delete(row)
     for row in get_average_scores():
         displayed_email = extract_email(row[0])
         tree.insert('', 'end', values=(displayed_email, row[1], row[2], row[3]))
+
+# Function to send email information to the client
+
 
 def send_email_info(client_socket, email, cipher_suite):
     info = get_email_info(email)
@@ -116,6 +135,8 @@ def send_email_info(client_socket, email, cipher_suite):
         )
     encrypted_message = cipher_suite.encrypt(message.encode('utf-8'))
     client_socket.sendall(encrypted_message)
+
+# Function to handle client requests
 
 
 def handle_client(client_socket):
@@ -182,6 +203,9 @@ def handle_client(client_socket):
         print("Error handling client:", str(e))
         client_socket.close()
 
+# Function to accept incoming connections
+
+
 def accept_connections():
     while True:
         client_socket, address = server_socket.accept()
@@ -189,9 +213,15 @@ def accept_connections():
         client_thread = threading.Thread(target=handle_client, args=(client_socket,))
         client_thread.start()
 
-# Tkinter setup
+# Tkinter setup:
+# Setting up Tkinter GUI
+
+
 root = tk.Tk()
 root.title("Email Scores")
+
+# Function to search for an email address in the database
+
 
 def search_email():
     search_term = search_entry.get()
@@ -210,11 +240,17 @@ def search_email():
         displayed_email = extract_email(row[0])
         tree.insert('', 'end', values=(displayed_email, row[1], row[2], row[3]))
 
+# Function to extract email from the full email address
+
+
 def extract_email(full_email):
     match = re.search(r'<(.+?)>', full_email)
     if match:
         return match.group(1)
     return full_email
+
+# Function to sort the treeview columns
+
 
 def sort_treeview(column, reverse):
     def convert(value):
@@ -229,6 +265,8 @@ def sort_treeview(column, reverse):
         tree.move(child, '', index)
     tree.heading(column, command=lambda: sort_treeview(column, not reverse))
 
+
+# Creating Treeview widget to display email scores
 tree = ttk.Treeview(root, columns=("Email", "Avg Sender Score", "Avg Email Score", "Count of Checks"), show='headings')
 tree.heading("Email", text="Email", command=lambda: sort_treeview("Email", False))
 tree.heading("Avg Sender Score", text="Avg Sender Score", command=lambda: sort_treeview("Avg Sender Score", False))
@@ -236,6 +274,7 @@ tree.heading("Avg Email Score", text="Avg Email Score", command=lambda: sort_tre
 tree.heading("Count of Checks", text="Count of Checks", command=lambda: sort_treeview("Count of Checks", False))
 tree.pack(fill=tk.BOTH, expand=True)
 
+# Adding search functionality to the GUI
 search_label = tk.Label(root, text="Search Email:")
 search_label.pack(side=tk.LEFT, padx=10, pady=10)
 search_entry = tk.Entry(root)
@@ -243,11 +282,11 @@ search_entry.pack(side=tk.LEFT, padx=10, pady=10)
 search_button = tk.Button(root, text="Search", command=search_email)
 search_button.pack(side=tk.LEFT, padx=10, pady=10)
 
-# Start server in a new thread
+# Start server in a new thread to handle incoming connections
 server_thread = threading.Thread(target=accept_connections, daemon=True)
 server_thread.start()
 
-# Initial population of the treeview
+# Initial population of the treeview with existing data
 update_treeview()
 
 # Start Tkinter main loop

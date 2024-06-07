@@ -3,6 +3,7 @@ import re
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 
+
 class EmailManagerApp:
     def __init__(self, master):
         self.master = master
