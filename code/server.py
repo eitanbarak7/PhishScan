@@ -33,7 +33,7 @@ cursor.execute('''
 db.commit()
 
 # Server setup: Setting up socket for communication
-host = 'localhost'
+host = '0.0.0.0'
 port = 5678
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -46,7 +46,7 @@ print("Server is listening on: {}:{}".format(host, port))
 
 
 def escape_string(value):
-    return str(sqlite3.Binary(value.encode()), 'utf-8')
+    return value.replace("'", "''")
 
 # Function to update email scores in the database
 
@@ -77,9 +77,9 @@ def update_scores(email, sender_score, email_score):
     db.commit()
     update_treeview()
 
+
+
 # Function to get average scores from the database
-
-
 def get_average_scores():
     cursor.execute('''
         SELECT email,
@@ -106,10 +106,13 @@ def get_email_info(email):
     cursor.execute(query, (email,))
     return cursor.fetchone()
 
+
 # Function to update the treeview with latest data
-
-
 def update_treeview():
+    tree.after(0, update_treeview_helper)
+
+
+def update_treeview_helper():
     for row in tree.get_children():
         tree.delete(row)
     for row in get_average_scores():
@@ -198,6 +201,7 @@ def handle_client(client_socket):
             break
 
         update_scores(email, sender_score, email_score)
+        update_treeview()  # Call update_treeview() instead of directly updating the treeview
         client_socket.close()
     except Exception as e:
         print("Error handling client:", str(e))
@@ -294,3 +298,4 @@ root.mainloop()
 
 # Close the database connection when Tkinter window is closed
 db.close()
+
