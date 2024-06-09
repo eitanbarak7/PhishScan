@@ -221,190 +221,227 @@ REPLY IN ENGLISH ONLY. In a DICT json format!
 
 
 def start_finding(done_queue, email):
-    try:
-        # Server details
-        host = 'localhost'
-        port = 5678
+    max_retries = 2
+    retry_count = 0
 
-        # Print sender's details
-        print("Sender's details: ", email.sender)
-
-        # Create client socket
+    while retry_count <= max_retries:
         try:
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        except socket.error as e:
-            print(f"Error creating socket: {str(e)}")
-            return
+            # Server details
+            host = '10.0.0.8'  # Server's IP
+            port = 5678
 
-        # Connect to the server
-        try:
-            client_socket.connect((host, port))
-        except socket.error as e:
-            print(f"Error connecting to the server: {str(e)}")
-            return
+            # Print sender's details
+            print("Sender's details: ", email.sender)
 
-        print("Connected to the server.")
+            # Create client socket
+            try:
+                client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            except socket.error as e:
+                print(f"Error creating socket: {str(e)}")
+                retry_count += 1
+                continue
 
-        # Send client's public key to the server
-        try:
-            client_public_key_pem = client_public_key.public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
-            ).decode()
-        except ValueError as e:
-            print(f"Error encoding public key: {str(e)}")
-            return
+            # Connect to the server
+            try:
+                client_socket.connect((host, port))
+            except socket.error as e:
+                print(f"Error connecting to the server: {str(e)}")
+                retry_count += 1
+                continue
 
-        try:
-            client_socket.send(client_public_key_pem.encode())
-        except socket.error as e:
-            print(f"Error sending public key to the server: {str(e)}")
-            return
+            print("Connected to the server.")
 
-        print("Sent client's public key to the server.")
+            # Send client's public key to the server
+            try:
+                client_public_key_pem = client_public_key.public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo
+                ).decode()
+            except ValueError as e:
+                print(f"Error encoding public key: {str(e)}")
+                retry_count += 1
+                continue
 
-        # Receive server's public key
-        try:
-            server_public_key_pem = client_socket.recv(1024).decode()
-        except socket.error as e:
-            print(f"Error receiving server's public key: {str(e)}")
-            return
+            try:
+                client_socket.send(client_public_key_pem.encode())
+            except socket.error as e:
+                print(f"Error sending public key to the server: {str(e)}")
+                retry_count += 1
+                continue
 
-        try:
-            server_public_key = serialization.load_pem_public_key(
-                server_public_key_pem.encode(),
-                backend=default_backend()
-            )
-        except ValueError as e:
-            print(f"Error loading server's public key: {str(e)}")
-            return
+            print("Sent client's public key to the server.")
 
-        print("Received server's public key.")
+            # Receive server's public key
+            try:
+                server_public_key_pem = client_socket.recv(1024).decode()
+            except socket.error as e:
+                print(f"Error receiving server's public key: {str(e)}")
+                retry_count += 1
+                continue
 
-        # Receive the encryption key from the server
-        try:
-            key = client_socket.recv(100000)
-        except socket.error as e:
-            print(f"Error receiving encryption key from the server: {str(e)}")
-            return
+            try:
+                server_public_key = serialization.load_pem_public_key(
+                    server_public_key_pem.encode(),
+                    backend=default_backend()
+                )
+            except ValueError as e:
+                print(f"Error loading server's public key: {str(e)}")
+                retry_count += 1
+                continue
 
-        try:
-            cipher_suite = Fernet(key)
-        except ValueError as e:
-            print(f"Error creating cipher suite: {str(e)}")
-            return
+            print("Received server's public key.")
 
-        print("Received encryption key from the server.")
+            # Receive the encryption key from the server
+            try:
+                key = client_socket.recv(100000)
+            except socket.error as e:
+                print(f"Error receiving encryption key from the server: {str(e)}")
+                retry_count += 1
+                continue
 
-        # Encrypt email data and send it to the server
-        email_from_to_socket = email.sender
-        try:
-            encrypted_email = cipher_suite.encrypt(email_from_to_socket.encode('utf-8'))
-        except cryptography.fernet.InvalidToken as e:
-            print(f"Error encrypting email data: {str(e)}")
-            return
+            try:
+                cipher_suite = Fernet(key)
+            except ValueError as e:
+                print(f"Error creating cipher suite: {str(e)}")
+                retry_count += 1
+                continue
 
-        print("Original email data:", email_from_to_socket)
-        print("Encrypted email data:", encrypted_email)
+            print("Received encryption key from the server.")
 
-        try:
-            client_socket.send(encrypted_email)
-        except socket.error as e:
-            print(f"Error sending encrypted email data to the server: {str(e)}")
-            return
+            # Encrypt email data and send it to the server
+            email_from_to_socket = email.sender
+            try:
+                encrypted_email = cipher_suite.encrypt(email_from_to_socket.encode('utf-8'))
+            except cryptography.fernet.InvalidToken as e:
+                print(f"Error encrypting email data: {str(e)}")
+                retry_count += 1
+                continue
 
-        print("Sent encrypted email data to the server.")
+            print("Original email data:", email_from_to_socket)
+            print("Encrypted email data:", encrypted_email)
 
-        # Receive encrypted response from the server
-        try:
-            encrypted_response = client_socket.recv(100000)
-        except socket.error as e:
-            print(f"Error receiving encrypted response from the server: {str(e)}")
-            return
+            try:
+                client_socket.send(encrypted_email)
+            except socket.error as e:
+                print(f"Error sending encrypted email data to the server: {str(e)}")
+                retry_count += 1
+                continue
 
-        print("Encrypted response received:", encrypted_response)
+            print("Sent encrypted email data to the server.")
 
-        # Decrypt response from the server
-        try:
-            response = cipher_suite.decrypt(encrypted_response).decode('utf-8')
-        except cryptography.fernet.InvalidToken as e:
-            print(f"Error decrypting response: {str(e)}")
-            return
+            # Receive encrypted response from the server
+            try:
+                encrypted_response = client_socket.recv(100000)
+            except socket.error as e:
+                print(f"Error receiving encrypted response from the server: {str(e)}")
+                retry_count += 1
+                continue
 
-        print("Decrypted response:", response)
+            print("Encrypted response received:", encrypted_response)
 
-        # Check sender status
-        try:
-            sender_status = check_sender(email, response)
-        except ValueError as e:
-            print(f"Error checking sender status (ValueError): {str(e)}")
-            return
-        except TypeError as e:
-            print(f"Error checking sender status (TypeError): {str(e)}")
-            return
+            # Decrypt response from the server
+            try:
+                response = cipher_suite.decrypt(encrypted_response).decode('utf-8')
+            except cryptography.fernet.InvalidToken as e:
+                print(f"Error decrypting response: {str(e)}")
+                retry_count += 1
+                continue
+
+            print("Decrypted response:", response)
+
+            # Check sender status
+            try:
+                sender_status = check_sender(email, response)
+            except ValueError as e:
+                print(f"Error checking sender status (ValueError): {str(e)}")
+                retry_count += 1
+                continue
+            except TypeError as e:
+                print(f"Error checking sender status (TypeError): {str(e)}")
+                retry_count += 1
+                continue
+            except Exception as e:
+                print(f"Error checking sender status (other exception): {str(e)}")
+                retry_count += 1
+                continue
+
+            print("Sender status:", sender_status)
+
+            # Encrypt sender status and send it to the server
+            sender_status_to_socket_ = str(sender_status["Score"])
+            try:
+                encrypted_sender_status = cipher_suite.encrypt(sender_status_to_socket_.encode('utf-8'))
+            except cryptography.fernet.InvalidToken as e:
+                print(f"Error encrypting sender status: {str(e)}")
+                retry_count += 1
+                continue
+
+            print("Encrypted sender status:", encrypted_sender_status)
+
+            try:
+                client_socket.send(encrypted_sender_status)
+            except socket.error as e:
+                print(f"Error sending encrypted sender status to the server: {str(e)}")
+                retry_count += 1
+                continue
+
+            print("Sent encrypted sender status to the server.")
+
+            # Check email status
+            email_status_str = check_email_text(email, sender_status, response)
+            try:
+                email_status = json.loads(email_status_str)
+            except ValueError as e:
+                print(f"Error parsing email status JSON: {str(e)}")
+                retry_count += 1
+                continue
+
+            print("Email status:", email_status)
+
+            # Encrypt email status and send it to the server
+            email_status_to_socket_ = str(email_status["Phishing Detected Score"])
+            try:
+                encrypted_email_status = cipher_suite.encrypt(email_status_to_socket_.encode('utf-8'))
+            except cryptography.fernet.InvalidToken as e:
+                print(f"Error encrypting email status: {str(e)}")
+                retry_count += 1
+                continue
+
+            print("Encrypted email status:", encrypted_email_status)
+
+            try:
+                client_socket.send(encrypted_email_status)
+            except socket.error as e:
+                print(f"Error sending encrypted email status to the server: {str(e)}")
+                retry_count += 1
+                continue
+
+            print("Sent encrypted email status to the server.")
+
+            # Put "done" in the done_queue
+            done_queue.put("done")
+
+            # Close client socket
+            client_socket.close()
+
+            # Show sender screen with email, sender status, email status, and response
+            show_sender_screen(email, sender_status, email_status, response)
+
+            break  # Exit the loop if the analysis is successful
+
         except Exception as e:
-            print(f"Error checking sender status (other exception): {str(e)}")
-            return
+            # Handle any errors during email analysis
+            print("Error during email analysis:", str(e))
+            retry_count += 1
 
-        print("Sender status:", sender_status)
+    if retry_count > max_retries:
+        print("Max retries exceeded. Email analysis failed.")
 
-        # Encrypt sender status and send it to the server
-        sender_status_to_socket_ = str(sender_status["Score"])
-        try:
-            encrypted_sender_status = cipher_suite.encrypt(sender_status_to_socket_.encode('utf-8'))
-        except cryptography.fernet.InvalidToken as e:
-            print(f"Error encrypting sender status: {str(e)}")
-            return
+        # Display a message box indicating the failure
+        messagebox.showerror("Error", "Email analysis failed. Please try again.")
 
-        print("Encrypted sender status:", encrypted_sender_status)
-
-        try:
-            client_socket.send(encrypted_sender_status)
-        except socket.error as e:
-            print(f"Error sending encrypted sender status to the server: {str(e)}")
-            return
-
-        print("Sent encrypted sender status to the server.")
-
-        # Check email status
-        email_status_str = check_email_text(email, sender_status, response)
-        try:
-            email_status = json.loads(email_status_str)
-        except ValueError as e:
-            print(f"Error parsing email status JSON: {str(e)}")
-            return
-
-        print("Email status:", email_status)
-
-        # Encrypt email status and send it to the server
-        email_status_to_socket_ = str(email_status["Phishing Detected Score"])
-        try:
-            encrypted_email_status = cipher_suite.encrypt(email_status_to_socket_.encode('utf-8'))
-        except cryptography.fernet.InvalidToken as e:
-            print(f"Error encrypting email status: {str(e)}")
-            return
-
-        print("Encrypted email status:", encrypted_email_status)
-
-        try:
-            client_socket.send(encrypted_email_status)
-        except socket.error as e:
-            print(f"Error sending encrypted email status to the server: {str(e)}")
-            return
-
-        print("Sent encrypted email status to the server.")
-
-        # Put "done" in the done_queue
+        # Put "done" in the done_queue to end the loading screen
         done_queue.put("done")
-
-        # Close client socket
-        client_socket.close()
-
-        # Show sender screen with email, sender status, email status, and response
-        show_sender_screen(email, sender_status, email_status, response)
-    except Exception as e:
-        # Handle any errors during email analysis
-        print("Error during email analysis:", str(e))
 
 
 def show_sender_screen(email, sender_status, email_status, response):

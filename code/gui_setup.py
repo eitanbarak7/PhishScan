@@ -3,7 +3,7 @@ import os
 import queue
 import subprocess
 import threading
-from tkinter import scrolledtext
+from tkinter import scrolledtext, messagebox
 import tkinter as tk
 from find_phishing import start_finding
 from screens import start_loading_screen
@@ -158,19 +158,21 @@ def create_download_button(frame, download_func, listbox, emails):
     download_button.pack(side=tk.LEFT, padx=5, pady=5)
     return download_button
 
+
 # Function to create the button for detecting phishing emails
-
-
 def create_phishing_button(frame, listbox, emails):
     detect_phishing_button = tk.Button(frame, text="Detect Phishing", width=20, height=2,
                                        command=lambda: find_phishing_in_message(listbox, emails), bg="red",
                                        fg="white")
     detect_phishing_button.pack(side=tk.LEFT, padx=5, pady=5)
 
+
 # Function to start the phishing detection process
-
-
 def find_phishing_in_message(email_listbox, emails):
+    if not email_listbox.curselection():
+        messagebox.showwarning("No Email Selected", "Please select an email to analyze.")
+        return
+
     index = email_listbox.curselection()[0]
     email = emails[index]
 
