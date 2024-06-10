@@ -1,18 +1,20 @@
 import datetime
 import socket
-
-import cryptography
-
-from email_operations import *
-from email_scores import store_email_score, get_email_score
 import json
 from openai import OpenAI
-import tkinter as tk
 from tkinter import ttk
+import cryptography
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
+from email_operations import *
+from email_scores import store_email_score, get_email_score
+
+
+#Define AI models here
+SENDER_SCORE_MODEL = "gpt-3.5-turbo"
+EMAIL_SCORE_MODEL = "gpt-3.5-turbo"
 
 
 # Generate client's key pair
@@ -31,7 +33,7 @@ def define_sender_email_score_with_ai(email, response_text):
     content_for_request = email.sender + "\n" + response_text
     # Make a request to OpenAI's chat model
     response = clientOpenAI.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model=SENDER_SCORE_MODEL,
         messages=[
             {
                 "role": "system",
@@ -169,7 +171,7 @@ def check_email_text(email, sender_status, response):
 
     # Make a request to OpenAI's chat model
     response = clientOpenAI.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model=EMAIL_SCORE_MODEL,
         messages=[
             {
                 "role": "system",
@@ -206,7 +208,16 @@ Levels you MUST CHECK: check the email content properly:
 By using these steps (levels), you will be able to do it well. Make sure you checked ALL LEVELS.
 Make sure to reply to me with the template I asked for.
 
+...
 REPLY IN ENGLISH ONLY. In a DICT json format!
+The JSON format should be as follows:
+{
+    "Phishing Detected Score": <integer from 1 to 10>,
+    "Safe": "<explanation of safe aspects found in the email>",
+    "Danger": "<explanation of dangerous or suspicious aspects found in the email>",
+    "Comment": "<comment explaining the chosen score, logic, and quotes from the texts to support the decision>"
+}
+Make sure to use double quotes for the keys and values in the JSON.
    """
             },
             {
@@ -529,7 +540,7 @@ def show_sender_screen(email, sender_status, email_status, response, window, ema
     if email_score <= 3:
         email_color = "green"
         email_comment = "Safe"
-    elif email_score <= 6:
+    elif email_score <= 5:
         email_color = "orange"
         email_comment = "Probably Safe"
     else:
