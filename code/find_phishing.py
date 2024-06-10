@@ -182,6 +182,7 @@ Danger: ### (write a text: explain here the dangerous or suspicious things you f
 Comment: #### (Here, add a comment explaining why you chose this specific score, explain your logic, and give me quotes from the texts to base your decision. give explanations. summarize the whole thing
 
 THE MOST DANGEROUS RISKS ARE: FAKE URLs, URGENCY, PRIVATE DETAILS SHARING REQUEST, AND ALL PHISHING AND SPAM EMAILS SIGNS.
+CHECK EVEN THE TRUSTED URLs, are they authentic? SOMETIMES THEY CHANGE o to 0 or other similar things.... DOUBLE CHECK IT!!!
 Levels you MUST CHECK: check the email content properly:
 1. Check the score for the email's sender that you've been given. check the rest of the email based on this, but don't put all of your trust in it, just get help with it. sometimes it's not that accurate, take that in charge. If the sender appears on white-list or black-list, make sure to pay attention!
 2. Check the email subject. is it suspicious? does it contain promises or "clickbait"?
@@ -194,6 +195,10 @@ Levels you MUST CHECK: check the email content properly:
 9. If the sender identifies itself at some point on the email's plain text (usually at the end of it) - check that the sender's name and email matches this identity.
 10. If the email is trying to show itself as an email from a known company, is the email address that sent the email - matches it? if not - it will be very suspicious because it might be disguise.
 11. Look at the average email's sender score and average email's score that you received before, they shouldn't decide it all, but pay attention, they might show trust or show dangerous patterns. mention it in the comments later if you used it. (it's the average till now from other previous email checks)
+12. CHECK EVEN THE TRUSTED URLs, are they authentic? SOMETIMES THEY CHANGE o to 0 or other similar things.... DOUBLE CHECK IT!!!
+13. EXAMPLES: Double check imposters: Is Google: Google or Go0gle? (zero instead of o), is Apple: Apple or App1e? (1 instead of l)
+14. Double check the letters that can be spoofed: o-0, l-1, L-1, e-3, S-5, G-9, z-2, etc.!!!
+15 Email that contains spoofed links - will be highly suspicious.
 
 By using these steps (levels), you will be able to do it well. Make sure you checked ALL LEVELS.
 Make sure to reply to me with the template I asked for.
