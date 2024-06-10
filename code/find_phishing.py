@@ -1,8 +1,10 @@
+import datetime
 import socket
 
 import cryptography
 
 from email_operations import *
+from email_scores import store_email_score, get_email_score
 import json
 from openai import OpenAI
 import tkinter as tk
@@ -11,6 +13,7 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
+
 
 # Generate client's key pair
 client_private_key = rsa.generate_private_key(
@@ -186,7 +189,7 @@ CHECK EVEN THE TRUSTED URLs, are they authentic? SOMETIMES THEY CHANGE o to 0 or
 Levels you MUST CHECK: check the email content properly:
 1. Check the score for the email's sender that you've been given. check the rest of the email based on this, but don't put all of your trust in it, just get help with it. sometimes it's not that accurate, take that in charge. If the sender appears on white-list or black-list, make sure to pay attention!
 2. Check the email subject. is it suspicious? does it contain promises or "clickbait"?
-3. If there are URLs in the email, do they look safe? Are the domains authentic and trusted? - Fake URLs are highly suspicious! check if they are the original URL's of the brand or company, if not - it's very bad.
+3. If there are URLs in the email, do they look safe? Are the domains authentic and trusted? - Fake URLs are highly suspicious! check if they are the original URLs of the brand or company, if not - it's very bad.
 4. Check the email content itself - based on your AI's training and the way you know to recognize cyber and phishing attacks, do you find the email text safe or not?
 5. Any other methods if needed
 6. If you think the email is safe, don't hesitate to give a score of 1-2...
@@ -225,7 +228,7 @@ REPLY IN ENGLISH ONLY. In a DICT json format!
     return email_score
 
 
-def start_finding(done_queue, email):
+def start_finding(done_queue, email, window, emails, show_email_func, download_attachments_func):
     max_retries = 2
     retry_count = 0
 
@@ -402,6 +405,8 @@ def start_finding(done_queue, email):
                 continue
 
             print("Email status:", email_status)
+            email_identifier = f"{email.subject}_{email.date}"
+            store_email_score(email_identifier, email_status["Phishing Detected Score"])
 
             # Encrypt email status and send it to the server
             email_status_to_socket_ = str(email_status["Phishing Detected Score"])
@@ -430,7 +435,8 @@ def start_finding(done_queue, email):
             client_socket.close()
 
             # Show sender screen with email, sender status, email status, and response
-            show_sender_screen(email, sender_status, email_status, response)
+            show_sender_screen(email, sender_status, email_status, response, window, emails, show_email_func,
+                               download_attachments_func)
 
             break  # Exit the loop if the analysis is successful
 
@@ -449,7 +455,7 @@ def start_finding(done_queue, email):
         done_queue.put("done")
 
 
-def show_sender_screen(email, sender_status, email_status, response):
+def show_sender_screen(email, sender_status, email_status, response, window, emails, show_email_func, download_attachments_func):
     root = tk.Tk()
     root.title("Email Details and Status")
     root.geometry("1200x700")  # Set initial size of the window
@@ -579,4 +585,54 @@ def show_sender_screen(email, sender_status, email_status, response):
 
     main_frame.bind("<Configure>", on_frame_configure)
 
+    def on_close():
+        root.destroy()
+        reload_inbox(window, emails, show_email_func, download_attachments_func)
+
+    root.protocol("WM_DELETE_WINDOW", lambda: on_close())
     root.mainloop()
+
+
+def reload_inbox(window, emails):
+    sidebar_frame = window.winfo_children()[1]  # Assuming the sidebar frame is the second child of the window
+    email_listbox = None
+
+    for child in sidebar_frame.winfo_children():
+        if isinstance(child, tk.Listbox):
+            email_listbox = child
+            break
+
+    if email_listbox is None:
+        print("Email listbox not found")
+        return
+
+    email_listbox.delete(0, tk.END)  # Clear the existing email listbox
+
+    for email in emails:
+        # Format date
+        email_date_string = email.date
+        email_date = datetime.datetime.strptime(email_date_string, "%Y-%m-%d %H:%M:%S%z")
+        date = email_date.strftime("%Y-%m-%d %H:%M")
+
+        # Format subject
+        subject = (email.subject[:47] + "..." if len(email.subject) > 50 else email.subject)
+
+        # Retrieve the email score from the local file
+        email_identifier = f"{email.subject}_{email.date}"
+        email_score = get_email_score(email_identifier)
+
+        # Determine the color based on the email score
+        if email_score is not None:
+            if email_score <= 3:
+                color = "green"
+            elif email_score <= 6:
+                color = "orange"
+            else:
+                color = "red"
+            score_text = f"[{email_score}]"
+        else:
+            color = "black"
+            score_text = ""
+
+        email_listbox.insert(tk.END, f"{score_text} {date}{' ' * 5}{subject}")
+        email_listbox.itemconfig(tk.END, fg=color)
