@@ -7,14 +7,16 @@ from tkinter import scrolledtext, messagebox
 import tkinter as tk
 from find_phishing import start_finding
 from screens import start_loading_screen
+from email_scores import get_email_score, sync_email_scores
+
 
 # Function to set up GUI elements
 
 
 def setup_gui(window, emails, show_email_func, download_attachments_func):
+    sync_email_scores(emails)  # Synchronize email scores before creating the GUI
     bg_color = "#f0f0f0"
     create_sidebar(window, bg_color, emails, show_email_func, download_attachments_func)
-
 # Function to create the sidebar with buttons and email list
 
 
@@ -98,7 +100,8 @@ def create_sidebar(window, bg_color, emails, show_email_func, download_attachmen
     create_header_label(email_frame)
     text_area = create_text_area(email_frame)
     download_button = create_download_button(email_frame, download_attachments_func, email_listbox, emails)
-    create_phishing_button(email_frame, email_listbox, emails)
+    create_phishing_button(email_frame, email_listbox, emails, window, show_email_func, download_attachments_func)
+
 
 # Function to create a frame
 
@@ -123,12 +126,28 @@ def create_email_listbox(frame, emails):
         # Format subject
         subject = (email.subject[:47] + "..." if len(email.subject) > 50 else email.subject)
 
-        email_listbox.insert(tk.END,
-                             f"{date}{' ' * 5}{subject}")
+        # Retrieve the email score from the local file
+        email_identifier = f"{email.subject}_{email.date}"
+        email_score = get_email_score(email_identifier)
+
+        # Determine the color based on the email score
+        if email_score is not None:
+            if email_score <= 3:
+                color = "green"
+            elif email_score <= 6:
+                color = "orange"
+            else:
+                color = "red"
+            score_text = f"[{email_score}]"
+        else:
+            color = "black"
+            score_text = ""
+
+        email_listbox.insert(tk.END, f"{score_text} {date}{' ' * 5}{subject}")
+        email_listbox.itemconfig(tk.END, fg=color)
 
     email_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     return email_listbox
-
 # Function to create the header label
 
 
@@ -160,15 +179,15 @@ def create_download_button(frame, download_func, listbox, emails):
 
 
 # Function to create the button for detecting phishing emails
-def create_phishing_button(frame, listbox, emails):
+def create_phishing_button(frame, listbox, emails, window, show_email_func, download_attachments_func):
     detect_phishing_button = tk.Button(frame, text="Detect Phishing", width=20, height=2,
-                                       command=lambda: find_phishing_in_message(listbox, emails), bg="red",
+                                       command=lambda: find_phishing_in_message(listbox, emails, window, show_email_func, download_attachments_func), bg="red",
                                        fg="white")
     detect_phishing_button.pack(side=tk.LEFT, padx=5, pady=5)
 
 
 # Function to start the phishing detection process
-def find_phishing_in_message(email_listbox, emails):
+def find_phishing_in_message(email_listbox, emails, window, show_email_func, download_attachments_func):
     if not email_listbox.curselection():
         messagebox.showwarning("No Email Selected", "Please select an email to analyze.")
         return
@@ -185,7 +204,7 @@ def find_phishing_in_message(email_listbox, emails):
         threading.Thread(target=start_loading_screen, args=(done_queue,)).start()
 
         # Run start_finding in the main thread
-        start_finding(done_queue, email)
+        start_finding(done_queue, email, window, emails, show_email_func, download_attachments_func)
 
     # Call the find_with_load function
     find_with_load()

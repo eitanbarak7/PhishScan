@@ -1,6 +1,8 @@
 import os
 import tkinter as tk
 import threading
+
+from email_scores import sync_email_scores
 from screens import display_image_fullscreen, start_loading_screen
 from gui_setup import setup_gui
 from email_operations import show_email, download_attachments, fetch_emails
@@ -14,6 +16,7 @@ def start_program(done_queue):
     print("Fetching emails...")
     emails = fetch_emails()
     print(f"Fetched {len(emails)} emails")
+    sync_email_scores(emails)  # Synchronize email scores after fetching emails
 
     # Signal that the loading is complete
     done_queue.put("done")

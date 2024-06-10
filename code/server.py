@@ -78,7 +78,6 @@ def update_scores(email, sender_score, email_score):
     update_treeview()
 
 
-
 # Function to get average scores from the database
 def get_average_scores():
     cursor.execute('''
@@ -298,4 +297,3 @@ root.mainloop()
 
 # Close the database connection when Tkinter window is closed
 db.close()
-
