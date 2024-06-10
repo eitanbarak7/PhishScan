@@ -587,7 +587,7 @@ def show_sender_screen(email, sender_status, email_status, response, window, ema
 
     def on_close():
         root.destroy()
-        reload_inbox(window, emails, show_email_func, download_attachments_func)
+        reload_inbox(window, emails)
 
     root.protocol("WM_DELETE_WINDOW", lambda: on_close())
     root.mainloop()
